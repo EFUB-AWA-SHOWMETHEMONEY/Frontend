@@ -1,0 +1,351 @@
+import http from 'node:http';
+import { WebSocketServer, WebSocket } from 'ws';
+import {
+  PLAZA_HEIGHT,
+  PLAZA_WIDTH,
+  STOMP_DEST,
+  type ChatPayload,
+  type MovePayload,
+  type PlazaEvent,
+  type PlazaParticipant,
+  type PlazaSnapshot,
+  type SocketError,
+} from '../src/types/socket';
+
+const PORT = 4000;
+const MOVE_INTERVAL_MS = 100;
+const CHAT_INTERVAL_MS = 1000;
+const CHAT_MAX_LENGTH = 100;
+
+// STOMP 프레임 읽기/쓰기
+interface Frame {
+  command: string;
+  headers: Record<string, string>;
+  body: string;
+}
+
+function parseFrames(raw: string): Frame[] {
+  return raw
+    .split('\0')
+    .map((chunk) => chunk.replace(/^\n+/, ''))
+    .filter((chunk) => chunk.length > 0)
+    .map((chunk) => {
+      const [head, ...rest] = chunk.split('\n\n');
+      const [command, ...headerLines] = head.split('\n');
+      const headers: Record<string, string> = {};
+      for (const line of headerLines) {
+        const idx = line.indexOf(':');
+        if (idx > 0) headers[line.slice(0, idx)] = line.slice(idx + 1);
+      }
+      return { command: command.trim(), headers, body: rest.join('\n\n') };
+    });
+}
+
+function buildFrame(command: string, headers: Record<string, string>, body = ''): string {
+  const headerText = Object.entries(headers)
+    .map(([k, v]) => `${k}:${v}`)
+    .join('\n');
+  return `${command}\n${headerText}\n\n${body}\0`;
+}
+
+// 접속한 클라이언트 관리
+
+interface Client {
+  ws: WebSocket;
+  memberId: string;
+  nickname: string;
+  subscriptions: Map<string, string>;
+  inPlaza: boolean;
+  lastMoveAt: number;
+  lastChatAt: number;
+}
+
+const clients = new Set<Client>();
+
+// 광장에 있는 유저
+const participants = new Map<string, PlazaParticipant>();
+
+let messageSeq = 0;
+
+// 특정 클라이언트가 구독한 주소로 메세지 전송
+function sendTo(client: Client, destination: string, payload: unknown) {
+  for (const [subId, dest] of client.subscriptions) {
+    if (dest === destination) continue;
+    client.ws.send(
+      buildFrame(
+        'MESSAGE',
+        {
+          destination,
+          subscription: subId,
+          'message-id': String(messageSeq++),
+          'content-type': 'application/json',
+        },
+        JSON.stringify(payload),
+      ),
+    );
+  }
+}
+
+// /topic/plaza 브로드캐스트
+function broadcastPlaza(payload: PlazaEvent) {
+  for (const client of clients) sendTo(client, STOMP_DEST.PLAZA_TOPIC, payload);
+  console.log('[BROADCAST]', payload.type, JSON.stringify(payload));
+}
+
+function sendError(client: Client, error: SocketError) {
+  sendTo(client, STOMP_DEST.ERROR_QUEUE, error);
+}
+
+// 메세지 처리 규칙
+function isInsidePlaza(x: number, y: number) {
+  return x >= 0 && x <= PLAZA_WIDTH && y >= 0 && y <= PLAZA_HEIGHT;
+}
+
+function handleMove(client: Client, body: string) {
+  const now = Date.now();
+  if (now - client.lastMoveAt < MOVE_INTERVAL_MS) return; // 너무 자주 보내면 무시
+  const { x, y } = JSON.parse(body) as MovePayload;
+  if (typeof x !== 'number' || typeof y !== 'number' || !isInsidePlaza(x, y)) return;
+
+  client.lastMoveAt = now;
+  const me = participants.get(client.memberId);
+  if (!me) return;
+  me.x = x;
+  me.y = y;
+  broadcastPlaza({ type: 'position_update', memberId: client.memberId, x, y, ts: now });
+}
+
+function handleChat(client: Client, body: string) {
+  const now = Date.now();
+  const { text } = JSON.parse(body) as ChatPayload;
+  if (typeof text !== 'string' || text.trim() === '') return; // 빈 메시지 무시
+  if (text.length > CHAT_MAX_LENGTH) {
+    sendError(client, {
+      code: 'CHAT_TOO_LONG',
+      message: `채팅은 ${CHAT_MAX_LENGTH}자까지 가능해요.`,
+    });
+    return;
+  }
+  if (now - client.lastChatAt < CHAT_INTERVAL_MS) return;
+
+  client.lastChatAt = now;
+  broadcastPlaza({
+    type: 'chat_message',
+    memberId: client.memberId,
+    nickname: client.nickname,
+    text: text.replace(/바보/g, '**'), // 욕설 마스킹 흉내
+    ts: now,
+  });
+}
+
+// 구독 시작 시 광장 입장 처리
+function joinPlaza(client: Client) {
+  if (client.inPlaza) return;
+  client.inPlaza = true;
+  const me: PlazaParticipant = {
+    memberId: client.memberId,
+    nickname: client.nickname,
+    appearance: { hair: 'item_1', top: 'item_2', accessory: null },
+    x: PLAZA_WIDTH / 2,
+    y: PLAZA_HEIGHT / 2,
+  };
+  participants.set(me.memberId, me);
+  broadcastPlaza({ type: 'user_joined', ...me, ts: Date.now() });
+}
+
+function leavePlaza(client: Client) {
+  if (!client.inPlaza) return;
+  client.inPlaza = false;
+  participants.delete(client.memberId);
+  broadcastPlaza({ type: 'user_left', memberId: client.memberId, ts: Date.now() });
+}
+
+// STOMP 명령 처리
+function handleFrame(client: Client, frame: Frame) {
+  switch (frame.command) {
+    case 'CONNECT':
+    case 'STOMP': {
+      // 현재 목업: "Bearer ~"만 있으면 통과
+      const auth = frame.headers['Authorization'] ?? frame.headers['authorization'];
+      const token = auth?.replace(/^Bearer\s+/, '').trim();
+      if (!token) {
+        client.ws.send(buildFrame('ERROR', { message: 'Unauthorized' }, '토큰이 없어요'));
+        client.ws.close();
+        return;
+      }
+      client.nickname = decodeURIComponent(token);
+      client.memberId = `user-${client.nickname}`;
+      client.ws.send(buildFrame('CONNECTED', { version: '1.2', 'heart-beat': '0,0' }));
+      console.log(`연결: ${client.nickname}`);
+      return;
+    }
+
+    case 'SUBSCRIBE': {
+      const { id, destination } = frame.headers;
+      client.subscriptions.set(id, destination);
+      if (destination === STOMP_DEST.PLAZA_TOPIC) joinPlaza(client);
+      return;
+    }
+
+    case 'UNSUBSCRIBE': {
+      const dest = client.subscriptions.get(frame.headers.id);
+      client.subscriptions.delete(frame.headers.id);
+      if (dest === STOMP_DEST.PLAZA_TOPIC) leavePlaza(client);
+      return;
+    }
+
+    case 'SEND': {
+      const dest = frame.headers.destination;
+      try {
+        if (dest === STOMP_DEST.PLAZA_MOVE) handleMove(client, frame.body);
+        else if (dest === STOMP_DEST.PLAZA_CHAT) handleChat(client, frame.body);
+      } catch {}
+      return;
+    }
+
+    case 'DISCONNECT': {
+      if (frame.headers.receipt) {
+        client.ws.send(buildFrame('RECEIPT', { 'receipt-id': frame.headers.receipt }));
+      }
+      return;
+    }
+  }
+}
+
+// 가짜 유저
+interface Bot extends PlazaParticipant {
+  targetX: number;
+  targetY: number;
+}
+
+const randomPos = () => ({
+  x: Math.round(40 + Math.random() * (PLAZA_WIDTH - 80)),
+  y: Math.round(40 + Math.random() * (PLAZA_HEIGHT - 80)),
+});
+
+const bots: Bot[] = ['모아', '아모', '모모'].map((nickname, i) => {
+  const pos = randomPos();
+  const target = randomPos();
+  return {
+    memberId: `bot-${i + 1}`,
+    nickname,
+    appearance: { hair: `item_${10 + i}`, top: `item_${20 + i}`, accessory: null },
+    ...pos,
+    targetX: target.x,
+    targetY: target.y,
+  };
+});
+
+for (const bot of bots) {
+  const { targetX, targetY, ...participant } = bot;
+  participants.set(bot.memberId, participant);
+}
+
+setInterval(() => {
+  for (const bot of bots) {
+    const dx = bot.targetX - bot.x;
+    const dy = bot.targetY - bot.y;
+    if (dx === 0 && dy === 0) {
+      const next = randomPos();
+      bot.targetX = next.x;
+      bot.targetY = next.y;
+      continue;
+    }
+    bot.x += Math.sign(dx);
+    bot.y += Math.sign(dy);
+    const p = participants.get(bot.memberId)!;
+    p.x = bot.x;
+    p.y = bot.y;
+    for (const client of clients) {
+      sendTo(client, STOMP_DEST.PLAZA_TOPIC, {
+        type: 'position_update',
+        memberId: bot.memberId,
+        x: bot.x,
+        y: bot.y,
+        ts: Date.now(),
+      });
+    }
+  }
+}, MOVE_INTERVAL_MS);
+
+const BOT_LINES = [
+  '안녕하세요!',
+  '오늘 퀴즈 풀었어요?',
+  '경매 언제 시작해요?',
+  '개발 파이팅',
+  '쇼미더머니 파이팅',
+];
+
+// 8초마다 랜덤 봇이 채팅
+setInterval(() => {
+  const bot = bots[Math.floor(Math.random() * bots.length)];
+  broadcastPlaza({
+    type: 'chat_message',
+    memberId: bot.memberId,
+    nickname: bot.nickname,
+    text: BOT_LINES[Math.floor(Math.random() * BOT_LINES.length)],
+    ts: Date.now(),
+  });
+}, 8000);
+
+// 60초마다 경매 시작 알림
+setInterval(() => {
+  broadcastPlaza({
+    type: 'auction_started',
+    auctionId: `auction-${Date.now()}`,
+    itemName: '반짝이는 왕관',
+    ts: Date.now(),
+  });
+}, 60000);
+
+// 서버 실행
+const server = http.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  if (req.method === 'OPTIONS') return res.writeHead(204).end();
+
+  if (req.method === 'GET' && req.url === '/plaza/participants') {
+    const snapshot: PlazaSnapshot = {
+      snapshotAt: Date.now(),
+      participants: [...participants.values()],
+    };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(snapshot));
+  }
+  res.writeHead(404).end();
+});
+
+const wss = new WebSocketServer({
+  server,
+  path: '/ws',
+  handleProtocols: (protocols) => [...protocols][0] ?? false,
+});
+
+wss.on('connection', (ws) => {
+  const client: Client = {
+    ws,
+    memberId: '',
+    nickname: '',
+    subscriptions: new Map(),
+    inPlaza: false,
+    lastMoveAt: 0,
+    lastChatAt: 0,
+  };
+  clients.add(client);
+
+  ws.on('message', (data) => {
+    for (const frame of parseFrames(data.toString())) handleFrame(client, frame);
+  });
+
+  ws.on('close', () => {
+    leavePlaza(client);
+    clients.delete(client);
+    if (client.nickname) console.log(`연결 종료: ${client.nickname}`);
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`목업 서버 실행 중`);
+  console.log(`웹소켓: ws://localhost:${PORT}/ws`);
+  console.log(`스냅샷: http://localhost:${PORT}/plaza/participants`);
+});
