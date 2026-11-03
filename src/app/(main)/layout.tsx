@@ -1,9 +1,9 @@
-import Header from '@/components/layout/Header';
+import ShopHeader from '@/components/shop/ShopHeader';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Header nickname="쇼미더MONEY" balance={1000} />
+      <ShopHeader nickname="쇼미더MONEY" />
       <main>{children}</main>
     </>
   );

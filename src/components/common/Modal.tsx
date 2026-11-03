@@ -41,13 +41,13 @@ export default function Modal({
         event.preventDefault();
         onClose();
       }}
-      className={`moa-modal fixed inset-0 m-auto max-h-[calc(100dvh-32px)] w-[800px] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] border-[3px] border-brown-dark bg-white p-10 font-jua text-black ${className}`}
+      className={`moa-modal fixed inset-0 m-auto box-border h-[652px] max-h-[calc(100dvh-32px)] w-[800px] max-w-[calc(100vw-32px)] flex-col gap-8 overflow-y-auto rounded-[20px] border-[3px] border-brown-dark bg-white p-10 font-jua text-black open:flex max-sm:p-5 ${className}`}
     >
-      <h2 id={titleId} className="mb-8 text-[28px] leading-[35px]">
+      <h2 id={titleId} className="shrink-0 text-[28px] leading-[35px]">
         {title}
       </h2>
-      {children}
-      <div className="mt-8 flex flex-wrap justify-end gap-5">
+      <div className="min-w-0 flex-1">{children}</div>
+      <div className="flex shrink-0 flex-wrap justify-end gap-5">
         <Button variant="secondary" size="close" onClick={onClose}>
           닫기
         </Button>
