@@ -27,8 +27,9 @@ export default function Header({ nickname, balance }: HeaderProps) {
         className="max-sm:col-span-2 max-sm:row-start-1 max-sm:justify-self-center"
         priority
       />
-      <div className="flex items-center gap-5 justify-self-end">
+      <div className="flex items-center gap-5 justify-self-end max-sm:col-span-2 max-sm:row-start-3">
         <div
+          role="group"
           className="flex min-w-[148px] items-center justify-between gap-6 rounded-full bg-cream px-3 py-[7px] text-2xl leading-7"
           aria-label={`보유금 ${balance.toLocaleString('ko-KR')}`}
         >

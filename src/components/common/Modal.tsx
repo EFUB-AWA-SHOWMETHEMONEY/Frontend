@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, type ReactNode } from 'react';
 import Button from '@/components/common/Button';
 interface ModalProps {
   isOpen: boolean;
@@ -19,18 +19,34 @@ export default function Modal({
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const notifyClose = useEffectEvent(() => onClose());
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog || !isOpen) return;
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
+    let restored = false;
+    const restore = () => {
+      if (restored) return;
+      restored = true;
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+    const handleClose = () => {
+      // Ignore a queued close event from an earlier opening of this dialog.
+      if (dialog.open) return;
+      restore();
+      notifyClose();
+    };
+    dialog.addEventListener('close', handleClose);
     dialog.showModal();
     document.body.style.overflow = 'hidden';
     return () => {
+      // Controlled closes and unmounts must not notify the parent again.
+      dialog.removeEventListener('close', handleClose);
       dialog.close();
-      document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
+      restore();
     };
   }, [isOpen]);
   return (
