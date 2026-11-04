@@ -55,3 +55,6 @@ Thumbs.db
 
 # Local Figma reference materials (runtime assets stay in public/assets)
 /design-reference/
+
+# Local implementation notes and verification screenshots
+/docs/local/

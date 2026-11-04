@@ -3,6 +3,8 @@ import { useEffect, useEffectEvent, useId, useRef, type ReactNode } from 'react'
 import Button from '@/components/common/Button';
 interface ModalProps {
   isOpen: boolean;
+  /** Keep child state only for flows that explicitly preserve drafts. */
+  keepMounted?: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
@@ -11,6 +13,7 @@ interface ModalProps {
 }
 export default function Modal({
   isOpen,
+  keepMounted = false,
   onClose,
   title,
   children,
@@ -62,12 +65,12 @@ export default function Modal({
       <h2 id={titleId} className="shrink-0 text-[28px] leading-[35px]">
         {title}
       </h2>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1">{(isOpen || keepMounted) && children}</div>
       <div className="flex shrink-0 flex-wrap justify-end gap-5">
         <Button variant="secondary" size="close" onClick={onClose}>
           닫기
         </Button>
-        {actions}
+        {(isOpen || keepMounted) && actions}
       </div>
     </dialog>
   );

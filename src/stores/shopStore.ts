@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import { findProduct } from './catalog';
+import { findProduct } from '../constants/shop';
 
 export interface OwnedItem {
   instanceId: string;

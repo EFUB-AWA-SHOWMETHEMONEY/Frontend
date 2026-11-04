@@ -13,9 +13,9 @@ require.extensions['.ts'] = (module, filename) => {
   });
   module._compile(outputText, filename);
 };
-const { createShopStore } = require('../src/features/shop/store.ts');
-const { shopProducts } = require('../src/features/shop/catalog.ts');
-const { successMessage, subjectParticle } = require('../src/features/shop/success-message.ts');
+const { createShopStore } = require('../src/stores/shopStore.ts');
+const { shopProducts } = require('../src/constants/shop.ts');
+const { successMessage, subjectParticle } = require('../src/utils/shopSuccessMessage.ts');
 
 test('eight products use existing SVGs and known Figma prices', () => {
   assert.equal(shopProducts.length, 8);

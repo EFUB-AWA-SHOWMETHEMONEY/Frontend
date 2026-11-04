@@ -10,9 +10,8 @@ import ShopContainer from '@/components/shop/ShopContainer';
 import ShopTransactionModal from '@/components/shop/ShopTransactionModal';
 import ShopItemImage from '@/components/shop/ShopItemImage';
 import ShopSuccessNotice, { type ShopNotice } from '@/components/shop/ShopSuccessNotice';
-import { findProduct, shopProducts, type ShopProduct } from '@/features/shop/catalog';
-import { useShopStore } from '@/features/shop/useShopStore';
-import styles from '@/components/shop/Shop.module.css';
+import { findProduct, shopProducts, type ShopProduct } from '@/constants/shop';
+import { useShopStore } from '@/hooks/useShopStore';
 
 const format = (value: number) => value.toLocaleString('ko-KR');
 const CARD_STEP = 340; // 300px card + 40px gap.
@@ -22,7 +21,8 @@ export default function ShopPage() {
   const router = useRouter();
   const [tab, setTab] = useState<'purchase' | 'sale'>('purchase');
   const listRef = useRef<HTMLDivElement>(null);
-  const [scroll, setScroll] = useState({ previous: false, next: false, first: 1, last: 5 });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [notice, setNotice] = useState<ShopNotice | null>(null);
@@ -35,38 +35,24 @@ export default function ShopPage() {
   const selectedProduct = selected && findProduct(selected.productId);
   const count = tab === 'purchase' ? shopProducts.length : inventory.length;
 
+  const totalPages = Math.max(1, Math.ceil(count / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const update = () =>
-      setScroll({
-        previous: list.scrollLeft > 0,
-        next: list.scrollLeft + list.clientWidth < list.scrollWidth - 1,
-        first: Math.floor(list.scrollLeft / CARD_STEP) + 1,
-        last: Math.min(
-          count,
-          Math.max(1, Math.floor((list.scrollLeft + list.clientWidth + 40) / CARD_STEP)),
-        ),
-      });
-    const observer = new ResizeObserver(update);
+    const observer = new ResizeObserver(() => {
+      const nextSize = Math.max(1, Math.floor((list.clientWidth + 40) / CARD_STEP));
+      setPageSize(nextSize);
+    });
     observer.observe(list);
-    list.addEventListener('scroll', update);
-    return () => {
-      observer.disconnect();
-      list.removeEventListener('scroll', update);
-    };
+    return () => observer.disconnect();
   }, [tab, count]);
-
-  function scrollItems(direction: -1 | 1) {
-    const list = listRef.current;
-    if (!list) return;
-    const visibleCards = Math.max(1, Math.floor((list.clientWidth + 40) / CARD_STEP));
-    list.scrollBy({ left: direction * visibleCards * CARD_STEP, behavior: 'instant' });
-  }
 
   function changeTab(next: 'purchase' | 'sale') {
     setTab(next);
-    listRef.current?.scrollTo({ left: 0, behavior: 'instant' });
+    setPage(1);
     setSelectedId(null);
   }
 
@@ -97,14 +83,11 @@ export default function ShopPage() {
 
   return (
     <>
-      <div
-        className={`${styles.stage} ${tab === 'sale' && inventory.length > 0 ? styles.saleStage : ''}`}
-      >
+      <div className="flow-root [@media(width>=1024px)_and_(height>=600px)]:mx-auto [@media(width>=1024px)_and_(height>=600px)]:w-[1920px] [@media(width>=1024px)_and_(height>=600px)]:[zoom:min(1,calc(100vw/1920px),calc((100dvh-176px)/904px))]">
         <ShopContainer
           aria-label="상점"
-          className={tab === 'sale' && inventory.length > 0 ? styles.saleContainer : ''}
           toolbar={
-            <div className={styles.toolbarContent}>
+            <div className="relative flex w-full flex-wrap items-center gap-3 px-5">
               <h1 className="mr-7 text-[40px] leading-[61px] text-black">상점</h1>
               <div className="flex gap-3" aria-label="상점 메뉴">
                 <Button
@@ -128,7 +111,7 @@ export default function ShopPage() {
               <Button
                 variant="secondary"
                 disabled
-                className={styles.quiz}
+                className="disabled:ml-auto disabled:border-b-8 disabled:bg-[#e8f4fa] disabled:text-brown-dark"
                 title="오늘의 퀴즈는 아직 연결되지 않았어요"
               >
                 오늘의 퀴즈 →
@@ -138,23 +121,25 @@ export default function ShopPage() {
         >
           {tab === 'purchase' ? (
             <>
-              <h2 className={styles.heading}>현재 판매 중인 아이템 목록</h2>
+              <h2 className="shrink-0 text-[32px] leading-10 text-black">
+                현재 판매 중인 아이템 목록
+              </h2>
               <div
                 ref={listRef}
-                className={styles.grid}
+                className="flex w-full min-w-0 shrink-0 [scrollbar-width:none] flex-nowrap items-start gap-10 overflow-x-auto overflow-y-hidden overscroll-x-contain [&::-webkit-scrollbar]:hidden"
                 tabIndex={0}
                 role="region"
                 aria-label="구매 아이템 목록"
               >
-                {shopProducts.map((product) => {
+                {shopProducts.slice(startIndex, startIndex + pageSize).map((product) => {
                   const owned = inventory.some((entry) => entry.productId === product.id);
                   return (
                     <ItemCard key={product.id}>
-                      <div className={styles.itemImage}>
+                      <div className="flex h-[200px] w-full shrink-0 items-center justify-center rounded-[10px] bg-cream [&_img]:h-40 [&_img]:w-40 [&_img]:max-w-full [&_img]:object-contain [&_img]:[image-rendering:pixelated]">
                         <ShopItemImage src={product.image} />
                       </div>
-                      <h3 className={styles.itemName}>{product.name}</h3>
-                      <div className={styles.price}>
+                      <h3 className="text-[28px] leading-[35px] text-black">{product.name}</h3>
+                      <div className="flex items-center justify-between text-xl leading-7 text-brown-muted [&_strong]:flex [&_strong]:items-center [&_strong]:gap-2 [&_strong]:text-2xl [&_strong]:font-normal [&_strong]:text-black">
                         <span>가격</span>
                         <strong>
                           <Image src="/assets/ui/coin.svg" alt="" width={28} height={28} />
@@ -177,7 +162,9 @@ export default function ShopPage() {
             </>
           ) : inventory.length === 0 ? (
             <EmptyState
-              className={styles.empty}
+              title="보유한 아이템이 없습니다"
+              description="아이템을 보유하면 이곳에서 다시 판매할 수 있어요"
+              className="min-h-0! px-0! pt-20! pb-0!"
               action={
                 <Button size="empty" onClick={() => changeTab('purchase')}>
                   구매 탭으로 이동
@@ -187,19 +174,21 @@ export default function ShopPage() {
           ) : (
             <>
               <div>
-                <h2 className={styles.heading}>현재 보유 중인 아이템 목록</h2>
+                <h2 className="shrink-0 text-[32px] leading-10 text-black">
+                  현재 보유 중인 아이템 목록
+                </h2>
                 <p className="mt-2 text-[28px] leading-[35px] text-brown-muted">
                   판매할 아이템을 선택하세요
                 </p>
               </div>
               <div
                 ref={listRef}
-                className={styles.grid}
+                className="flex w-full min-w-0 shrink-0 [scrollbar-width:none] flex-nowrap items-start gap-10 overflow-x-auto overflow-y-hidden overscroll-x-contain [&::-webkit-scrollbar]:hidden"
                 tabIndex={0}
                 role="region"
                 aria-label="판매 아이템 목록"
               >
-                {inventory.map((entry) => {
+                {inventory.slice(startIndex, startIndex + pageSize).map((entry) => {
                   const product = findProduct(entry.productId)!;
                   return (
                     <SellItemCard
@@ -210,15 +199,15 @@ export default function ShopPage() {
                       }
                       aria-label={`${product.name} 판매 선택`}
                     >
-                      <span className={styles.itemImage}>
+                      <span className="flex h-[200px] w-full shrink-0 items-center justify-center rounded-[10px] bg-cream [&_img]:h-40 [&_img]:w-40 [&_img]:max-w-full [&_img]:object-contain [&_img]:[image-rendering:pixelated]">
                         <ShopItemImage src={product.image} />
                       </span>
-                      <span className={styles.itemName}>{product.name}</span>
+                      <span className="text-[28px] leading-[35px] text-black">{product.name}</span>
                     </SellItemCard>
                   );
                 })}
               </div>
-              <div className={styles.saleSummary}>
+              <div className="flex min-h-[110px] shrink-0 flex-wrap items-center justify-between gap-5 rounded-[20px] bg-cream p-5 [&_dd]:text-2xl [&_dd]:leading-7 [&_dl]:flex [&_dl]:flex-col [&_dl]:gap-3 [&_dl>div]:flex [&_dl>div]:items-center [&_dl>div]:gap-10 [&_dt]:shrink-0 [&_dt]:basis-[104px] [&_dt]:text-xl [&_dt]:text-brown-muted">
                 <dl>
                   <div>
                     <dt>선택한 아이템</dt>
@@ -247,34 +236,45 @@ export default function ShopPage() {
               </div>
             </>
           )}
+          {count > 0 && (
+            <nav
+              className="mt-auto flex items-center justify-center gap-6 text-[28px] leading-[35px] text-brown-muted"
+              aria-label="상품 목록 페이지"
+            >
+              <button
+                type="button"
+                aria-label="이전 페이지"
+                disabled={currentPage === 1}
+                className="flex size-11 items-center justify-center rounded-lg focus-visible:outline-3 focus-visible:outline-brown-dark enabled:cursor-pointer disabled:opacity-25 min-lg:absolute min-lg:top-1/2 min-lg:left-3 min-lg:-translate-y-1/2"
+                onClick={() => setPage(currentPage - 1)}
+              >
+                <Image
+                  src="/assets/ui/arrow-right.png"
+                  width={24}
+                  height={30}
+                  alt=""
+                  className="rotate-180"
+                />
+              </button>
+              <span aria-live="polite" aria-atomic="true">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                aria-label="다음 페이지"
+                disabled={currentPage === totalPages}
+                className="flex size-11 items-center justify-center rounded-lg focus-visible:outline-3 focus-visible:outline-brown-dark enabled:cursor-pointer disabled:opacity-25 min-lg:absolute min-lg:top-1/2 min-lg:right-3 min-lg:-translate-y-1/2"
+                onClick={() => setPage(currentPage + 1)}
+              >
+                <Image src="/assets/ui/arrow-right.png" width={24} height={30} alt="" />
+              </button>
+            </nav>
+          )}
         </ShopContainer>
-        <footer className={styles.footer}>
+        <footer className="relative mx-4 mt-8 mb-10 flex flex-col items-center gap-5">
           <Button size="exit" variant="secondary" onClick={() => router.push('/')}>
             ← 상점 나가기
           </Button>
-          {count > 0 && (scroll.previous || scroll.next) && (
-            <nav className={styles.listNavigation} aria-label="상품 목록 이동">
-              <Button
-                size="close"
-                variant="secondary"
-                disabled={!scroll.previous}
-                onClick={() => scrollItems(-1)}
-              >
-                이전
-              </Button>
-              <span className="sr-only" aria-live="polite">
-                {scroll.first}–{scroll.last} / {count}
-              </span>
-              <Button
-                size="close"
-                variant="secondary"
-                disabled={!scroll.next}
-                onClick={() => scrollItems(1)}
-              >
-                다음
-              </Button>
-            </nav>
-          )}
         </footer>
       </div>
       <ShopTransactionModal
