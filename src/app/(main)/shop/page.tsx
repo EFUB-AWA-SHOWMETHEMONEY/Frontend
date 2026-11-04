@@ -7,6 +7,7 @@ import Button from '@/components/common/Button';
 import EmptyState from '@/components/common/EmptyState';
 import { ItemCard, SellItemCard } from '@/components/shop/ItemCard';
 import ShopContainer from '@/components/shop/ShopContainer';
+import ShopViewport from '@/components/shop/ShopViewport';
 import ShopTransactionModal from '@/components/shop/ShopTransactionModal';
 import ShopItemImage from '@/components/shop/ShopItemImage';
 import ShopSuccessNotice, { type ShopNotice } from '@/components/shop/ShopSuccessNotice';
@@ -83,12 +84,15 @@ export default function ShopPage() {
 
   return (
     <>
-      <div className="flow-root [@media(width>=1024px)_and_(height>=600px)]:mx-auto [@media(width>=1024px)_and_(height>=600px)]:w-[1920px] [@media(width>=1024px)_and_(height>=600px)]:[zoom:min(1,calc(100vw/1920px),calc((100dvh-176px)/904px))]">
+      <ShopViewport>
         <ShopContainer
           aria-label="상점"
+          className={`h-[659px] max-lg:h-[668px] ${tab === 'sale' && count > 0 ? 'gap-3! min-lg:gap-4!' : ''}`}
           toolbar={
             <div className="relative flex w-full flex-wrap items-center gap-3 px-5">
-              <h1 className="mr-7 text-[40px] leading-[61px] text-black">상점</h1>
+              <h1 className="mr-7 text-[40px] leading-[61px] text-black [-webkit-text-stroke:16px_#FFFDF9] [paint-order:stroke_fill]">
+                상점
+              </h1>
               <div className="flex gap-3" aria-label="상점 메뉴">
                 <Button
                   size="tab"
@@ -126,7 +130,7 @@ export default function ShopPage() {
               </h2>
               <div
                 ref={listRef}
-                className="flex w-full min-w-0 shrink-0 [scrollbar-width:none] flex-nowrap items-start gap-10 overflow-x-auto overflow-y-hidden overscroll-x-contain [&::-webkit-scrollbar]:hidden"
+                className="flex w-full min-w-0 shrink-0 flex-nowrap items-start gap-10"
                 tabIndex={0}
                 role="region"
                 aria-label="구매 아이템 목록"
@@ -183,7 +187,7 @@ export default function ShopPage() {
               </div>
               <div
                 ref={listRef}
-                className="flex w-full min-w-0 shrink-0 [scrollbar-width:none] flex-nowrap items-start gap-10 overflow-x-auto overflow-y-hidden overscroll-x-contain [&::-webkit-scrollbar]:hidden"
+                className="flex w-full min-w-0 shrink-0 flex-nowrap items-start gap-10"
                 tabIndex={0}
                 role="region"
                 aria-label="판매 아이템 목록"
@@ -207,7 +211,7 @@ export default function ShopPage() {
                   );
                 })}
               </div>
-              <div className="flex min-h-[110px] shrink-0 flex-wrap items-center justify-between gap-5 rounded-[20px] bg-cream p-5 [&_dd]:text-2xl [&_dd]:leading-7 [&_dl]:flex [&_dl]:flex-col [&_dl]:gap-3 [&_dl>div]:flex [&_dl>div]:items-center [&_dl>div]:gap-10 [&_dt]:shrink-0 [&_dt]:basis-[104px] [&_dt]:text-xl [&_dt]:text-brown-muted">
+              <div className="flex min-h-[110px] shrink-0 items-center justify-between gap-5 rounded-[20px] bg-cream p-5 [&_dd]:text-2xl [&_dd]:leading-7 [&_dl]:flex [&_dl]:flex-col [&_dl]:gap-3 [&_dl>div]:flex [&_dl>div]:items-center [&_dl>div]:gap-10 max-lg:[&_dl>div]:gap-4 [&_dt]:shrink-0 [&_dt]:basis-[104px] [&_dt]:text-xl [&_dt]:text-brown-muted max-lg:[&_dt]:basis-20">
                 <dl>
                   <div>
                     <dt>선택한 아이템</dt>
@@ -220,6 +224,7 @@ export default function ShopPage() {
                 </dl>
                 <Button
                   disabled={!selectedProduct}
+                  className="max-lg:w-[126px]"
                   onClick={() => {
                     if (selectedProduct && selected) {
                       setDialog({
@@ -276,7 +281,7 @@ export default function ShopPage() {
             ← 상점 나가기
           </Button>
         </footer>
-      </div>
+      </ShopViewport>
       <ShopTransactionModal
         transaction={dialog}
         error={error}
