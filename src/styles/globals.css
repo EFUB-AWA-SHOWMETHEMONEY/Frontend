@@ -1,26 +1,38 @@
 @import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-brown-dark: #3b2f26;
+  --color-brown-muted: #736b64;
+  --color-coral: #ff7a59;
+  --color-beige: #d9cbb0;
+  --color-cream: #f8f2e6;
+  --color-ivory: #fffdf9;
+  --color-red-light: #fee2e3;
+  --color-red: #e6454a;
+  --color-red-dark: #b2282c;
+  --color-green: #3fa672;
+  /* Additional colors sampled from the supplied shop PNGs. */
+  --color-badge-hat: #7cc46a;
+  --color-badge-face: #6fc3e8;
+  --color-disabled: #ebe3d3;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-cream);
+  --color-foreground: var(--color-brown-dark);
+  --font-jua: var(--font-jua-family);
+  --font-sans: var(--font-jua-family);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
+  /* Preserve page width when a modal locks background scrolling. */
+  scrollbar-gutter: stable;
 }
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-brown-dark);
+}
+.moa-modal::backdrop {
+  background: rgb(0 0 0 / 30%);
 }

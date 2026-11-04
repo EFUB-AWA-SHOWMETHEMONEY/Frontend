@@ -52,3 +52,6 @@ Thumbs.db
 
 # logs
 *.log
+
+# Local Figma reference materials (runtime assets stay in public/assets)
+/design-reference/
