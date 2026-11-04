@@ -21,6 +21,7 @@
   --color-background: var(--color-cream);
   --color-foreground: var(--color-brown-dark);
   --font-jua: var(--font-jua-family);
+  --font-sans: var(--font-jua-family);
 }
 
 :root {
@@ -29,7 +30,6 @@
 body {
   background: var(--color-cream);
   color: var(--color-brown-dark);
-  font-family: Arial, Helvetica, sans-serif;
 }
 .moa-modal::backdrop {
   background: rgb(0 0 0 / 30%);
