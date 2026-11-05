@@ -83,8 +83,19 @@ export interface PlazaSnapshot {
   participants: PlazaParticipant[];
 }
 
-// 에러 메세지 (백엔드 확인 필요)
+// 에러 코드, 형식
+export type SocketErrorCode =
+  | 'INVALID_STOMP_AUTH_HEADER' // CONNECT에 Authorization 없음 / Bearer 아님
+  | 'INVALID_AUTH_TOKEN' // 토큰 파싱 실패
+  | 'EXPIRED_AUTH_TOKEN' // 토큰 만료
+  | 'MEMBER_NOT_FOUND' // 입장 시 회원 없음
+  | 'NOT_IN_ROOM' // 광장 입장 없이 이동 발행
+  | 'BAD_REQUEST' // 페이로드 검증 실패
+  | 'INTERNAL_SERVER_ERROR';
+
 export interface SocketError {
-  code: string;
+  success: false;
+  errorCode: SocketErrorCode;
   message: string;
+  data: null;
 }

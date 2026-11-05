@@ -103,8 +103,12 @@ function broadcastPlaza(payload: PlazaEvent) {
   console.log('[BROADCAST]', payload.type, JSON.stringify(payload));
 }
 
-function sendError(client: Client, error: SocketError) {
-  sendTo(client, STOMP_DEST.ERROR_QUEUE, error);
+function makeError(errorCode: SocketError['errorCode'], message: string): SocketError {
+  return { success: false, errorCode, message, data: null };
+}
+
+function sendError(client: Client, errorCode: SocketError['errorCode'], message: string) {
+  sendTo(client, STOMP_DEST.ERROR_QUEUE, makeError(errorCode, message));
 }
 
 // 메세지 처리 규칙
@@ -112,11 +116,22 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function isInt(value: unknown): value is number {
+  return Number.isInteger(value);
+}
+
 function handleMove(client: Client, body: string) {
   const now = Date.now();
   if (now - client.lastMoveAt < MOVE_INTERVAL_MS) return;
-  const { x, y, seq } = JSON.parse(body) as MovePayload;
-  if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(seq)) return;
+  const { x, y, seq } = JSON.parse(body) as Partial<MovePayload>;
+  if (!isInt(x) || !isInt(y) || !isInt(seq)) {
+    sendError(client, 'BAD_REQUEST', 'x, y, seq는 정수로 보내야 해요.');
+    return;
+  }
+  if (!client.inPlaza) {
+    sendError(client, 'NOT_IN_ROOM', '광장에 존재하지 않는 회원입니다.');
+    return;
+  }
 
   if (seq <= (moveSeqs.get(client.memberId) ?? 0)) return;
 
@@ -143,15 +158,12 @@ function handleChat(client: Client, body: string) {
 
   // 누락,공백,100자 초과 → BAD_REQUEST
   if (typeof text !== 'string' || text.trim() === '') {
-    sendError(client, { code: 'BAD_REQUEST', message: '채팅 내용을 입력해주세요.' });
+    sendError(client, 'BAD_REQUEST', '채팅 내용을 입력해주세요.');
     return;
   }
   const trimmed = text.trim(); // 공백 제거 후 브로드캐스트
   if (trimmed.length > CHAT_MAX_LENGTH) {
-    sendError(client, {
-      code: 'BAD_REQUEST',
-      message: `채팅은 ${CHAT_MAX_LENGTH}자까지 가능해요.`,
-    });
+    sendError(client, 'BAD_REQUEST', `채팅은 ${CHAT_MAX_LENGTH}자까지 가능해요.`);
     return;
   }
   if (now - client.lastChatAt < CHAT_INTERVAL_MS) return;
@@ -195,8 +207,15 @@ function handleFrame(client: Client, frame: Frame) {
       // 현재 목업: "Bearer ~"만 있으면 통과
       const auth = frame.headers['Authorization'] ?? frame.headers['authorization'];
       const token = auth?.replace(/^Bearer\s+/, '').trim();
-      if (!token) {
-        client.ws.send(buildFrame('ERROR', { message: 'Unauthorized' }, '토큰이 없어요'));
+      if (!auth?.startsWith('Bearer ') || !token) {
+        const error = makeError('INVALID_STOMP_AUTH_HEADER', 'STOMP 인증 헤더가 필요합니다.');
+        client.ws.send(
+          buildFrame(
+            'ERROR',
+            { message: error.errorCode, 'content-type': 'application/json' },
+            JSON.stringify(error),
+          ),
+        );
         client.ws.close();
         return;
       }
@@ -227,7 +246,9 @@ function handleFrame(client: Client, frame: Frame) {
       try {
         if (dest === STOMP_DEST.PLAZA_MOVE) handleMove(client, frame.body);
         else if (dest === STOMP_DEST.PLAZA_CHAT) handleChat(client, frame.body);
-      } catch {}
+      } catch {
+        // JSON 파싱 실패 시 무시
+      }
       return;
     }
 
