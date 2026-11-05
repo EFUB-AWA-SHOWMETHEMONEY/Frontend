@@ -2,6 +2,7 @@
 import { Client } from '@stomp/stompjs';
 import { createContext, useEffect, useState } from 'react';
 import { getAccessToken } from '@/utils/token';
+import type { SocketError } from '@/types/socket';
 
 interface StompContextValue {
   client: Client | null;
@@ -32,10 +33,21 @@ export default function StompProvider({ children }: StompProviderProps) {
 
       onConnect: () => setIsConnected(true),
       onWebSocketClose: () => setIsConnected(false),
-
       onStompError: (frame) => {
-        console.error('[STOMP] 서버 에러:', frame.headers.message, frame.body);
-        // TODO: 토큰 재발급 API가 생기면 여기서 재발급 후 재연결
+        let error: SocketError | null = null;
+        try {
+          error = JSON.parse(frame.body) as SocketError;
+        } catch {
+          // body가 JSON이 아니면 그대로 둠
+        }
+        console.error('[STOMP] 연결 거절:', error?.errorCode, error?.message);
+
+        if (error?.errorCode === 'EXPIRED_AUTH_TOKEN') {
+          // TODO: 토큰 재발급 API가 생기면 여기서 재발급
+          return;
+        }
+        void stompClient.deactivate();
+        // TODO: 로그인 기능이 생기면 로그인 페이지로 이동
       },
     });
 
