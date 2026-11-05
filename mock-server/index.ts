@@ -138,23 +138,28 @@ function handleMove(client: Client, body: string) {
 
 function handleChat(client: Client, body: string) {
   const now = Date.now();
-  const { text } = JSON.parse(body) as ChatPayload;
-  if (typeof text !== 'string' || text.trim() === '') return; // 빈 메시지 무시
-  if (text.length > CHAT_MAX_LENGTH) {
+  const { text } = JSON.parse(body) as Partial<ChatPayload>;
+
+  // 누락,공백,100자 초과 → BAD_REQUEST
+  if (typeof text !== 'string' || text.trim() === '') {
+    sendError(client, { code: 'BAD_REQUEST', message: '채팅 내용을 입력해주세요.' });
+    return;
+  }
+  const trimmed = text.trim(); // 공백 제거 후 브로드캐스트
+  if (trimmed.length > CHAT_MAX_LENGTH) {
     sendError(client, {
-      code: 'CHAT_TOO_LONG',
+      code: 'BAD_REQUEST',
       message: `채팅은 ${CHAT_MAX_LENGTH}자까지 가능해요.`,
     });
     return;
   }
   if (now - client.lastChatAt < CHAT_INTERVAL_MS) return;
-
   client.lastChatAt = now;
   broadcastPlaza({
     type: 'chat_message',
     memberId: client.memberId,
     nickname: client.nickname,
-    text: text.replace(/바보/g, '**'), // 욕설 마스킹 흉내
+    text: trimmed.replace(/바보/g, (word) => '*'.repeat(word.length)), // 금지어 마스킹 흉내
     ts: now,
   });
 }
