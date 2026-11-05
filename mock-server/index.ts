@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
+import type { ApiResponse } from '../src/types/api';
 import {
   PLAZA_HEIGHT,
   PLAZA_WIDTH,
@@ -322,13 +323,27 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
 
-  if (req.method === 'GET' && req.url === '/plaza/participants') {
+  const sendJson = (status: number, body: ApiResponse<unknown>) => {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(body));
+  };
+
+  if (req.method === 'GET' && req.url === '/api/plaza/participants') {
+    // 목업: Bearer ~ 만 있으면 통과
+    if (!req.headers.authorization?.startsWith('Bearer ')) {
+      return sendJson(401, { success: false, data: null, message: '로그인이 필요합니다.' });
+    }
+    const list = [...participants.values()];
     const snapshot: PlazaSnapshot = {
       snapshotAt: Date.now(),
-      participants: [...participants.values()],
+      participantCount: list.length,
+      participants: list,
     };
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify(snapshot));
+    return sendJson(200, {
+      success: true,
+      data: snapshot,
+      message: '광장 참여자 조회 요청이 성공했습니다.',
+    });
   }
   res.writeHead(404).end();
 });
@@ -366,5 +381,5 @@ wss.on('connection', (ws) => {
 server.listen(PORT, () => {
   console.log(`목업 서버 실행 중`);
   console.log(`웹소켓: ws://localhost:${PORT}/ws`);
-  console.log(`스냅샷: http://localhost:${PORT}/plaza/participants`);
+  console.log(`스냅샷: http://localhost:${PORT}/api/plaza/participants`);
 });

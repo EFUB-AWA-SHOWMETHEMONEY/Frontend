@@ -76,9 +76,10 @@ export interface EquipmentUpdateEvent {
 export type PlazaEvent =
   UserJoinedEvent | UserLeftEvent | PositionUpdateEvent | ChatMessageEvent | EquipmentUpdateEvent;
 
-// 입장 시 스냅샷 (응답 형식 백엔드 확인 필요)
+// 입장 시 스냅샷
 export interface PlazaSnapshot {
   snapshotAt: number;
+  participantCount: number;
   participants: PlazaParticipant[];
 }
 
