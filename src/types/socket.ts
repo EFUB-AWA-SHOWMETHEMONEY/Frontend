@@ -28,6 +28,7 @@ export interface PlazaParticipant {
 export interface MovePayload {
   x: number;
   y: number;
+  seq: number;
 }
 
 // /app/plaza/chat

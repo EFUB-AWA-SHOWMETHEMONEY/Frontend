@@ -107,27 +107,31 @@ function sendError(client: Client, error: SocketError) {
 }
 
 // 메세지 처리 규칙
-function isInsidePlaza(x: number, y: number) {
-  return x >= 0 && x <= PLAZA_WIDTH && y >= 0 && y <= PLAZA_HEIGHT;
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function handleMove(client: Client, body: string) {
   const now = Date.now();
-  if (now - client.lastMoveAt < MOVE_INTERVAL_MS) return; // 너무 자주 보내면 무시
-  const { x, y } = JSON.parse(body) as MovePayload;
-  if (!Number.isInteger(x) || !Number.isInteger(y) || !isInsidePlaza(x, y)) return;
+  if (now - client.lastMoveAt < MOVE_INTERVAL_MS) return;
+  const { x, y, seq } = JSON.parse(body) as MovePayload;
+  if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(seq)) return;
 
-  client.lastMoveAt = now;
+  if (seq <= (moveSeqs.get(client.memberId) ?? 0)) return;
+
   const me = participants.get(client.memberId);
   if (!me) return;
-  me.x = x;
-  me.y = y;
+
+  client.lastMoveAt = now;
+  moveSeqs.set(client.memberId, seq);
+  me.x = clamp(x, 0, PLAZA_WIDTH - 1);
+  me.y = clamp(y, 0, PLAZA_HEIGHT - 1);
   broadcastPlaza({
     type: 'position_update',
     memberId: client.memberId,
-    x,
-    y,
-    seq: nextSeq(client.memberId),
+    x: me.x,
+    y: me.y,
+    seq,
     ts: now,
   });
 }
