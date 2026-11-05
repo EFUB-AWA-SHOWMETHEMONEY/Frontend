@@ -9,14 +9,17 @@ export const STOMP_DEST = {
   ERROR_QUEUE: '/user/queue/errors', // 에러 큐 경로 백엔드 확인 필요
 } as const;
 
-// 착용 아이템 정보 (임시)
-export type Appearance = Record<string, string | null>;
+// 착용 아이템 정보
+export interface EquippedItem {
+  itemId: number;
+  itemImageUrl: string;
+}
 
 // 광장에 있는 유저 정보
 export interface PlazaParticipant {
-  memberId: string;
+  memberId: number;
   nickname: string;
-  appearance: Appearance;
+  equippedItem: EquippedItem | null;
   x: number;
   y: number;
 }
@@ -40,36 +43,37 @@ export interface UserJoinedEvent extends PlazaParticipant {
 
 export interface UserLeftEvent {
   type: 'user_left';
-  memberId: string;
+  memberId: number;
   ts: number;
 }
 
 export interface PositionUpdateEvent {
   type: 'position_update';
-  memberId: string;
+  memberId: number;
   x: number;
   y: number;
+  seq: number;
   ts: number;
 }
 
 export interface ChatMessageEvent {
   type: 'chat_message';
-  memberId: string;
+  memberId: number;
   nickname: string;
   text: string;
   ts: number;
 }
 
-export interface AuctionStartedEvent {
-  type: 'auction_started';
-  auctionId: string;
-  itemName: string;
+export interface EquipmentUpdateEvent {
+  type: 'equipment_update';
+  memberId: number;
+  equippedItem: EquippedItem | null;
   ts: number;
 }
 
 // 이벤트 구분
 export type PlazaEvent =
-  UserJoinedEvent | UserLeftEvent | PositionUpdateEvent | ChatMessageEvent | AuctionStartedEvent;
+  UserJoinedEvent | UserLeftEvent | PositionUpdateEvent | ChatMessageEvent | EquipmentUpdateEvent;
 
 // 입장 시 스냅샷 (응답 형식 백엔드 확인 필요)
 export interface PlazaSnapshot {

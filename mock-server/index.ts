@@ -52,7 +52,7 @@ function buildFrame(command: string, headers: Record<string, string>, body = '')
 
 interface Client {
   ws: WebSocket;
-  memberId: string;
+  memberId: number;
   nickname: string;
   subscriptions: Map<string, string>;
   inPlaza: boolean;
@@ -63,14 +63,24 @@ interface Client {
 const clients = new Set<Client>();
 
 // 광장에 있는 유저
-const participants = new Map<string, PlazaParticipant>();
+const participants = new Map<number, PlazaParticipant>();
+
+const moveSeqs = new Map<number, number>();
+function nextSeq(memberId: number) {
+  const seq = (moveSeqs.get(memberId) ?? 0) + 1;
+  moveSeqs.set(memberId, seq);
+  return seq;
+}
+
+const memberIds = new Map<string, number>();
+let nextMemberId = 1001; // 봇 1-3, 유저 1001-
 
 let messageSeq = 0;
 
 // 특정 클라이언트가 구독한 주소로 메세지 전송
 function sendTo(client: Client, destination: string, payload: unknown) {
   for (const [subId, dest] of client.subscriptions) {
-    if (dest === destination) continue;
+    if (dest !== destination) continue;
     client.ws.send(
       buildFrame(
         'MESSAGE',
@@ -105,14 +115,21 @@ function handleMove(client: Client, body: string) {
   const now = Date.now();
   if (now - client.lastMoveAt < MOVE_INTERVAL_MS) return; // 너무 자주 보내면 무시
   const { x, y } = JSON.parse(body) as MovePayload;
-  if (typeof x !== 'number' || typeof y !== 'number' || !isInsidePlaza(x, y)) return;
+  if (!Number.isInteger(x) || !Number.isInteger(y) || !isInsidePlaza(x, y)) return;
 
   client.lastMoveAt = now;
   const me = participants.get(client.memberId);
   if (!me) return;
   me.x = x;
   me.y = y;
-  broadcastPlaza({ type: 'position_update', memberId: client.memberId, x, y, ts: now });
+  broadcastPlaza({
+    type: 'position_update',
+    memberId: client.memberId,
+    x,
+    y,
+    seq: nextSeq(client.memberId),
+    ts: now,
+  });
 }
 
 function handleChat(client: Client, body: string) {
@@ -145,7 +162,7 @@ function joinPlaza(client: Client) {
   const me: PlazaParticipant = {
     memberId: client.memberId,
     nickname: client.nickname,
-    appearance: { hair: 'item_1', top: 'item_2', accessory: null },
+    equippedItem: null,
     x: PLAZA_WIDTH / 2,
     y: PLAZA_HEIGHT / 2,
   };
@@ -174,7 +191,8 @@ function handleFrame(client: Client, frame: Frame) {
         return;
       }
       client.nickname = decodeURIComponent(token);
-      client.memberId = `user-${client.nickname}`;
+      if (!memberIds.has(client.nickname)) memberIds.set(client.nickname, nextMemberId++);
+      client.memberId = memberIds.get(client.nickname)!;
       client.ws.send(buildFrame('CONNECTED', { version: '1.2', 'heart-beat': '0,0' }));
       console.log(`연결: ${client.nickname}`);
       return;
@@ -227,9 +245,9 @@ const bots: Bot[] = ['모아', '아모', '모모'].map((nickname, i) => {
   const pos = randomPos();
   const target = randomPos();
   return {
-    memberId: `bot-${i + 1}`,
+    memberId: i + 1,
     nickname,
-    appearance: { hair: `item_${10 + i}`, top: `item_${20 + i}`, accessory: null },
+    equippedItem: null,
     ...pos,
     targetX: target.x,
     targetY: target.y,
@@ -262,6 +280,7 @@ setInterval(() => {
         memberId: bot.memberId,
         x: bot.x,
         y: bot.y,
+        seq: nextSeq(bot.memberId),
         ts: Date.now(),
       });
     }
@@ -287,16 +306,6 @@ setInterval(() => {
     ts: Date.now(),
   });
 }, 8000);
-
-// 60초마다 경매 시작 알림
-setInterval(() => {
-  broadcastPlaza({
-    type: 'auction_started',
-    auctionId: `auction-${Date.now()}`,
-    itemName: '반짝이는 왕관',
-    ts: Date.now(),
-  });
-}, 60000);
 
 // 서버 실행
 const server = http.createServer((req, res) => {
@@ -324,7 +333,7 @@ const wss = new WebSocketServer({
 wss.on('connection', (ws) => {
   const client: Client = {
     ws,
-    memberId: '',
+    memberId: 0,
     nickname: '',
     subscriptions: new Map(),
     inPlaza: false,
@@ -339,6 +348,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     leavePlaza(client);
+    moveSeqs.delete(client.memberId);
     clients.delete(client);
     if (client.nickname) console.log(`연결 종료: ${client.nickname}`);
   });
