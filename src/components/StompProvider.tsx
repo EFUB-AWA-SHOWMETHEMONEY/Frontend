@@ -15,7 +15,8 @@ interface StompProviderProps {
   children: React.ReactNode;
 }
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'ws://localhost:4000/ws';
+const IS_DEV = process.env.NODE_ENV === 'development';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || (IS_DEV ? 'ws://localhost:4000/ws' : null);
 
 // 앱 전체에 STOMP 연결을 1개만 만들어 공유
 export default function StompProvider({ children }: StompProviderProps) {
@@ -23,6 +24,13 @@ export default function StompProvider({ children }: StompProviderProps) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // 서버 주소와 인증 토큰이 모두 준비된 경우에만 연결
+    // TODO: 로그인 기능이 생기면 로그인 상태가 바뀔 때 다시 확인하도록 수정
+    if (!SOCKET_URL || !getAccessToken()) {
+      if (IS_DEV) console.warn('[STOMP] 소켓 주소나 토큰이 없어 연결하지 않아요.');
+      return;
+    }
+
     const stompClient = new Client({
       brokerURL: SOCKET_URL,
       reconnectDelay: 3000,
