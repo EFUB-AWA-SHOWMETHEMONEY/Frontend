@@ -15,7 +15,6 @@ import {
 
 const PORT = 4000;
 const MOVE_INTERVAL_MS = 100;
-const CHAT_INTERVAL_MS = 1000;
 const CHAT_MAX_LENGTH = 100;
 
 // STOMP 프레임 읽기/쓰기
@@ -61,7 +60,6 @@ interface Client {
   subscriptions: Map<string, string>;
   inPlaza: boolean;
   lastMoveAt: number;
-  lastChatAt: number;
 }
 
 const clients = new Set<Client>();
@@ -184,8 +182,8 @@ function handleChat(client: Client, body: string) {
     sendError(client, 'BAD_REQUEST', '채팅 내용을 입력해주세요.');
     return;
   }
-  const trimmed = text.trim(); // 공백 제거 후 브로드캐스트
-  if (trimmed.length > CHAT_MAX_LENGTH) {
+  // 글자 수는 공백 제거 전 원문 기준
+  if (text.length > CHAT_MAX_LENGTH) {
     sendError(client, 'BAD_REQUEST', `채팅은 ${CHAT_MAX_LENGTH}자까지 가능해요.`);
     return;
   }
@@ -193,8 +191,7 @@ function handleChat(client: Client, body: string) {
     sendError(client, 'NOT_IN_ROOM', '광장에 존재하지 않는 회원입니다.');
     return;
   }
-  if (now - client.lastChatAt < CHAT_INTERVAL_MS) return;
-  client.lastChatAt = now;
+  const trimmed = text.trim(); // 공백 제거 후 브로드캐스트
   broadcastPlaza({
     type: 'chat_message',
     memberId: client.memberId,
@@ -450,7 +447,6 @@ wss.on('connection', (ws) => {
     subscriptions: new Map(),
     inPlaza: false,
     lastMoveAt: 0,
-    lastChatAt: 0,
   };
   clients.add(client);
 

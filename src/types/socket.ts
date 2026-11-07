@@ -19,7 +19,7 @@ export interface EquippedItem {
 export interface PlazaParticipant {
   memberId: number;
   nickname: string;
-  equippedItem: EquippedItem | null;
+  equippedItem: EquippedItem | null; // 1개만 착용 가능
   x: number;
   y: number;
 }
@@ -28,7 +28,7 @@ export interface PlazaParticipant {
 export interface MovePayload {
   x: number;
   y: number;
-  seq: number;
+  seq: number; // 광장 구독이 하나도 없다가 새로 입장할 때 1부터 다시 시작 (구독 추가 시에는 이어서). 서버도 재입장 시 초기화
 }
 
 // /app/plaza/chat
@@ -36,7 +36,8 @@ export interface ChatPayload {
   text: string;
 }
 
-// /topic/plaza
+// /topic/plaza (구독 = 광장 입장)
+// 본인의 user_joined는 오지 않을 수 있음 → 본인 상태는 구독 후 스냅샷 API로 가져오기
 export interface UserJoinedEvent extends PlazaParticipant {
   type: 'user_joined';
   ts: number;
@@ -53,7 +54,7 @@ export interface PositionUpdateEvent {
   memberId: number;
   x: number;
   y: number;
-  seq: number;
+  seq: number; // 클라이언트가 보낸 값 그대로
   ts: number;
 }
 
