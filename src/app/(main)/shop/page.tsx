@@ -67,7 +67,7 @@ export default function ShopPage() {
     if (!result.ok) {
       setError(
         result.reason === 'not-ready'
-          ? '?? ??? ???? ????.'
+          ? '회원 정보를 불러오는 중이에요.'
           : result.reason === 'insufficient-funds'
             ? '잔액이 부족해요!'
             : result.reason === 'already-owned'
