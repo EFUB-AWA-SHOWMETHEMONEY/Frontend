@@ -169,6 +169,10 @@ function handleChat(client: Client, body: string) {
     sendError(client, 'BAD_REQUEST', `채팅은 ${CHAT_MAX_LENGTH}자까지 가능해요.`);
     return;
   }
+  if (!client.inPlaza) {
+    sendError(client, 'NOT_IN_ROOM', '광장에 존재하지 않는 회원입니다.');
+    return;
+  }
   if (now - client.lastChatAt < CHAT_INTERVAL_MS) return;
   client.lastChatAt = now;
   broadcastPlaza({
