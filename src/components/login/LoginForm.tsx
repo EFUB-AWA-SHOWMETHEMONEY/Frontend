@@ -15,12 +15,14 @@ const LOGIN_MENUS = [
 export default function LoginForm() {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const canSubmit = loginId.trim() !== '' && password !== '';
 
   const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!canSubmit) return;
+    setErrorMessage('');
     // TODO(API 연동): 로그인 요청 → 토큰 저장 → 광장으로 이동
   };
 
@@ -33,13 +35,16 @@ export default function LoginForm() {
       <h1 className="w-full text-[32px] text-black">로그인</h1>
 
       <form onSubmit={handleSubmit} className="flex w-full flex-col items-center gap-7">
-        <div className="flex w-full flex-col gap-3.5">
+        <div className="relative flex w-full flex-col gap-3.5">
           <Input
             aria-label="아이디"
             placeholder="아이디"
             autoComplete="username"
             value={loginId}
-            onChange={(e) => setLoginId(e.target.value)}
+            onChange={(e) => {
+              setLoginId(e.target.value);
+              setErrorMessage('');
+            }}
           />
           <Input
             type="password"
@@ -47,8 +52,19 @@ export default function LoginForm() {
             placeholder="비밀번호"
             autoComplete="current-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrorMessage('');
+            }}
           />
+          {errorMessage && (
+            <p
+              role="alert"
+              className="absolute top-full left-1 mt-[5px] text-sm leading-[18px] text-red"
+            >
+              {errorMessage}
+            </p>
+          )}
         </div>
 
         <Button type="submit" variant="bank" size="empty" disabled={!canSubmit}>
