@@ -1,6 +1,14 @@
 import type { Metadata } from 'next';
+import { Jua } from 'next/font/google';
 import '@/styles/globals.css';
-import Providers from './providers';
+import Providers from '@/app/providers';
+
+const jua = Jua({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-jua-family',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'MoaMoa',
@@ -10,7 +18,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body>
+      <body className={`${jua.variable} font-sans`}>
         <Providers>{children}</Providers>
       </body>
     </html>
