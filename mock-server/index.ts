@@ -372,16 +372,15 @@ setInterval(() => {
     const p = participants.get(bot.memberId)!;
     p.x = bot.x;
     p.y = bot.y;
-    for (const client of clients) {
-      sendTo(client, STOMP_DEST.PLAZA_TOPIC, {
-        type: 'position_update',
-        memberId: bot.memberId,
-        x: bot.x,
-        y: bot.y,
-        seq: nextSeq(bot.memberId),
-        ts: Date.now(),
-      });
-    }
+    const event: PlazaEvent = {
+      type: 'position_update',
+      memberId: bot.memberId,
+      x: bot.x,
+      y: bot.y,
+      seq: nextSeq(bot.memberId),
+      ts: Date.now(),
+    };
+    for (const client of clients) sendTo(client, STOMP_DEST.PLAZA_TOPIC, event);
   }
 }, MOVE_INTERVAL_MS);
 
