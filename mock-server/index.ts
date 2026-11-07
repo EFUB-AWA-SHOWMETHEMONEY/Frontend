@@ -123,10 +123,25 @@ function isInt(value: unknown): value is number {
   return Number.isInteger(value);
 }
 
+function parseJsonObject(body: string): Record<string, unknown> | null {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function handleMove(client: Client, body: string) {
   const now = Date.now();
   if (now - client.lastMoveAt < MOVE_INTERVAL_MS) return;
-  const { x, y, seq } = JSON.parse(body) as Partial<MovePayload>;
+  const payload = parseJsonObject(body);
+  if (!payload) {
+    sendError(client, 'BAD_REQUEST', '요청 본문은 JSON 객체여야 해요.');
+    return;
+  }
+  const { x, y, seq } = payload as Partial<MovePayload>;
   if (!isInt(x) || !isInt(y) || !isInt(seq)) {
     sendError(client, 'BAD_REQUEST', 'x, y, seq는 정수로 보내야 해요.');
     return;
@@ -157,7 +172,12 @@ function handleMove(client: Client, body: string) {
 
 function handleChat(client: Client, body: string) {
   const now = Date.now();
-  const { text } = JSON.parse(body) as Partial<ChatPayload>;
+  const payload = parseJsonObject(body);
+  if (!payload) {
+    sendError(client, 'BAD_REQUEST', '요청 본문은 JSON 객체여야 해요.');
+    return;
+  }
+  const { text } = payload as Partial<ChatPayload>;
 
   // 누락,공백,100자 초과 → BAD_REQUEST
   if (typeof text !== 'string' || text.trim() === '') {
@@ -291,8 +311,10 @@ function handleFrame(client: Client, frame: Frame) {
       try {
         if (dest === STOMP_DEST.PLAZA_MOVE) handleMove(client, frame.body);
         else if (dest === STOMP_DEST.PLAZA_CHAT) handleChat(client, frame.body);
-      } catch {
-        // JSON 파싱 실패 시 무시
+      } catch (error) {
+        // 여기 오는 건 예상하지 못한 내부 오류
+        console.error(`[SEND 처리 오류] ${dest}`, error);
+        sendError(client, 'INTERNAL_SERVER_ERROR', '요청 처리 중 오류가 발생했어요.');
       }
       return;
     }
