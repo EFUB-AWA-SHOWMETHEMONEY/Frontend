@@ -1,0 +1,102 @@
+// 공통 상수
+export const PLAZA_WIDTH = 480;
+export const PLAZA_HEIGHT = 270;
+
+export const STOMP_DEST = {
+  PLAZA_TOPIC: '/topic/plaza',
+  PLAZA_MOVE: '/app/plaza/move',
+  PLAZA_CHAT: '/app/plaza/chat',
+  ERROR_QUEUE: '/user/queue/errors', // 에러 큐 경로 백엔드 확인 필요
+} as const;
+
+// 착용 아이템 정보
+export interface EquippedItem {
+  itemId: number;
+  itemImageUrl: string;
+}
+
+// 광장에 있는 유저 정보
+export interface PlazaParticipant {
+  memberId: number;
+  nickname: string;
+  equippedItem: EquippedItem | null; // 1개만 착용 가능
+  x: number;
+  y: number;
+}
+
+// /app/plaza/move
+export interface MovePayload {
+  x: number;
+  y: number;
+  seq: number; // 광장 구독이 하나도 없다가 새로 입장할 때 1부터 다시 시작 (구독 추가 시에는 이어서). 서버도 재입장 시 초기화
+}
+
+// /app/plaza/chat
+export interface ChatPayload {
+  text: string;
+}
+
+// /topic/plaza (구독 = 광장 입장)
+// 본인의 user_joined는 오지 않을 수 있음 → 본인 상태는 구독 후 스냅샷 API로 가져오기
+export interface UserJoinedEvent extends PlazaParticipant {
+  type: 'user_joined';
+  ts: number;
+}
+
+export interface UserLeftEvent {
+  type: 'user_left';
+  memberId: number;
+  ts: number;
+}
+
+export interface PositionUpdateEvent {
+  type: 'position_update';
+  memberId: number;
+  x: number;
+  y: number;
+  seq: number; // 클라이언트가 보낸 값 그대로
+  ts: number;
+}
+
+export interface ChatMessageEvent {
+  type: 'chat_message';
+  memberId: number;
+  nickname: string;
+  text: string;
+  ts: number;
+}
+
+export interface EquipmentUpdateEvent {
+  type: 'equipment_update';
+  memberId: number;
+  equippedItem: EquippedItem | null;
+  ts: number;
+}
+
+// 이벤트 구분
+export type PlazaEvent =
+  UserJoinedEvent | UserLeftEvent | PositionUpdateEvent | ChatMessageEvent | EquipmentUpdateEvent;
+
+// 입장 시 스냅샷
+export interface PlazaSnapshot {
+  snapshotAt: number;
+  participantCount: number;
+  participants: PlazaParticipant[];
+}
+
+// 에러 코드, 형식
+export type SocketErrorCode =
+  | 'INVALID_STOMP_AUTH_HEADER' // CONNECT에 Authorization 없음 / Bearer 아님
+  | 'INVALID_AUTH_TOKEN' // 토큰 파싱 실패
+  | 'EXPIRED_AUTH_TOKEN' // 토큰 만료
+  | 'MEMBER_NOT_FOUND' // 입장 시 회원 없음
+  | 'NOT_IN_ROOM' // 광장 입장 없이 이동 발행
+  | 'BAD_REQUEST' // 페이로드 검증 실패
+  | 'INTERNAL_SERVER_ERROR';
+
+export interface SocketError {
+  success: false;
+  errorCode: SocketErrorCode;
+  message: string;
+  data: null;
+}
