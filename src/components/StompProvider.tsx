@@ -31,7 +31,10 @@ export default function StompProvider({ children }: StompProviderProps) {
         stompClient.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {};
       },
 
-      onConnect: () => setIsConnected(true),
+      onConnect: () => {
+        setClient(stompClient);
+        setIsConnected(true);
+      },
       onWebSocketClose: () => setIsConnected(false),
       onStompError: (frame) => {
         let error: SocketError | null = null;
@@ -52,7 +55,6 @@ export default function StompProvider({ children }: StompProviderProps) {
     });
 
     stompClient.activate();
-    setClient(stompClient);
 
     return () => {
       setIsConnected(false);
