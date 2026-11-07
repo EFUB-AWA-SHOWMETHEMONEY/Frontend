@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 
 const VARIANTS = {
+  bank: 'bg-yellow text-brown-dark',
   primary: 'bg-coral text-white',
   secondary: 'bg-ivory text-brown-dark',
   selected: 'bg-brown-dark text-white',
@@ -29,7 +30,7 @@ export default function Button({
     <button
       type={type}
       disabled={disabled}
-      className={`inline-flex max-w-full shrink-0 items-center justify-center rounded-[20px] border-[3px] border-b-8 border-brown-dark p-2.5 text-center font-jua leading-none focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brown-dark enabled:cursor-pointer disabled:cursor-not-allowed disabled:border-b-[3px] disabled:bg-disabled disabled:text-brown-muted ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex max-w-full shrink-0 items-center justify-center rounded-[20px] border-[3px] border-b-8 border-brown-dark p-2.5 text-center font-jua leading-none focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brown-dark enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-disabled disabled:text-brown-muted ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...props}
     >
       {children}
