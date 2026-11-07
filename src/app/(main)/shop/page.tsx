@@ -12,6 +12,8 @@ import ShopTransactionModal from '@/components/shop/ShopTransactionModal';
 import ShopItemImage from '@/components/shop/ShopItemImage';
 import ShopSuccessNotice, { type ShopNotice } from '@/components/shop/ShopSuccessNotice';
 import { findProduct, shopProducts, type ShopProduct } from '@/constants/shop';
+import { useStore } from 'zustand';
+import { memberStore } from '@/stores/memberStore';
 import { useShopStore } from '@/hooks/useShopStore';
 
 const format = (value: number) => value.toLocaleString('ko-KR');
@@ -29,6 +31,7 @@ export default function ShopPage() {
   const [notice, setNotice] = useState<ShopNotice | null>(null);
   const noticeId = useRef(0);
   const [error, setError] = useState('');
+  const hydrated = useStore(memberStore, (state) => state.hydrated);
   const inventory = useShopStore((state) => state.inventory);
   const purchase = useShopStore((state) => state.purchase);
   const sell = useShopStore((state) => state.sell);
@@ -63,11 +66,13 @@ export default function ShopPage() {
       dialog.kind === 'purchase' ? purchase(dialog.product.id) : sell(dialog.instanceId!);
     if (!result.ok) {
       setError(
-        result.reason === 'insufficient-funds'
-          ? '잔액이 부족해요!'
-          : result.reason === 'already-owned'
-            ? '이미 보유한 아이템입니다.'
-            : '보유 아이템을 다시 확인해주세요.',
+        result.reason === 'not-ready'
+          ? '?? ??? ???? ????.'
+          : result.reason === 'insufficient-funds'
+            ? '잔액이 부족해요!'
+            : result.reason === 'already-owned'
+              ? '이미 보유한 아이템입니다.'
+              : '보유 아이템을 다시 확인해주세요.',
       );
       return;
     }
@@ -151,7 +156,7 @@ export default function ShopPage() {
                         </strong>
                       </div>
                       <Button
-                        disabled={owned}
+                        disabled={!hydrated || owned}
                         onClick={() => {
                           setDialog({ kind: 'purchase', product });
                           setError('');
@@ -223,7 +228,7 @@ export default function ShopPage() {
                   </div>
                 </dl>
                 <Button
-                  disabled={!selectedProduct}
+                  disabled={!hydrated || !selectedProduct}
                   className="max-lg:w-[126px]"
                   onClick={() => {
                     if (selectedProduct && selected) {

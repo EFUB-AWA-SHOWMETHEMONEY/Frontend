@@ -1,16 +1,14 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/layout/Header';
 import Button from '@/components/common/Button';
-import { bankAccount, bankProductGroups, type BankProduct } from '@/constants/bank';
-import BankViewport from './BankViewport';
+import { bankProductGroups, type BankProduct } from '@/constants/bank';
 import BankProductDetail from './BankProductDetail';
 import BankCompletionPreview from './BankCompletionPreview';
-import { bankStore } from '@/stores/bankStore';
+import { memberStore } from '@/stores/memberStore';
 
 export default function BankMain() {
   const router = useRouter();
@@ -21,19 +19,12 @@ export default function BankMain() {
     savings,
     subscriptions: mockSubscriptions,
     hydrated,
-    subscribe,
-  } = useStore(bankStore);
+    subscribeToBank,
+  } = useStore(memberStore);
   const requestIdRef = useRef('');
-  useEffect(() => {
-    void bankStore.persist.rehydrate();
-  }, []);
   return (
-    <BankViewport modalOpen={completionPreview}>
-      {/* Keep Header's desktop layout inside the scaled 1920px frame. */}
-      <div className="flow-root [&>header]:mx-[50px]! [&>header]:h-[88px]! [&>header]:grid-cols-[minmax(0,1fr)_166px_minmax(0,1fr)]! [&>header]:gap-y-0! [&>header]:px-[47px]! [&>header]:py-0! [&>header>div]:col-auto! [&>header>div]:row-auto! [&>header>img]:col-auto! [&>header>img]:row-auto!">
-        <Header nickname={bankAccount.nickname} balance={balance} />
-      </div>
-      <main>
+    <>
+      <div>
         <h1 className="absolute top-[176px] left-[65px] text-[40px] leading-[61px] text-black [-webkit-text-stroke:16px_#FFFDF9] [paint-order:stroke_fill]">
           은행
         </h1>
@@ -54,7 +45,8 @@ export default function BankMain() {
             balance={balance}
             onSubscribe={(amount, months) => {
               if (completionPreview) return;
-              if (!subscribe(selectedProduct.id, amount, months, requestIdRef.current)) return;
+              if (!subscribeToBank(selectedProduct.id, amount, months, requestIdRef.current))
+                return;
               setCompletionPreview(true);
             }}
             onClose={() => {
@@ -96,7 +88,7 @@ export default function BankMain() {
                           requestIdRef.current = crypto.randomUUID();
                           setSelectedProduct(product);
                         }}
-                        className="bg-[#FFCC42]! text-brown-dark!"
+                        variant="bank"
                       >
                         가입
                       </Button>
@@ -115,7 +107,7 @@ export default function BankMain() {
             </span>
           </Button>
         </div>
-      </main>
+      </div>
       {selectedProduct && mockSubscriptions.length > 0 && (
         <BankCompletionPreview
           isOpen={completionPreview}
@@ -128,6 +120,6 @@ export default function BankMain() {
           }}
         />
       )}
-    </BankViewport>
+    </>
   );
 }

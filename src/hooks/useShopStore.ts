@@ -1,7 +1,8 @@
 'use client';
 
 import { useStore } from 'zustand';
-import { createShopStore, type ShopState } from '../stores/shopStore';
+import { memberStore } from '../stores/memberStore';
+import type { ShopState } from '../stores/shopStore';
 
-const shopStore = createShopStore();
-export const useShopStore = <T>(selector: (state: ShopState) => T) => useStore(shopStore, selector);
+export const useShopStore = <T>(selector: (state: ShopState) => T) =>
+  useStore(memberStore, selector);

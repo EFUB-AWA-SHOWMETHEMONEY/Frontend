@@ -57,7 +57,7 @@ export default function BankProductDetail({
   return (
     <section
       aria-labelledby="bank-product-title"
-      className="absolute top-[285px] left-[50px] h-[660px] w-[1820px] rounded-[20px] bg-ivory px-20 pt-10"
+      className="absolute top-[285px] left-[50px] h-[680px] w-[1820px] rounded-[20px] bg-ivory px-20 pt-10"
     >
       <h2
         ref={headingRef}
@@ -77,7 +77,7 @@ export default function BankProductDetail({
       </dl>
       <div className="mt-8 flex items-center justify-between gap-5">
         <div className="flex items-center gap-5">
-          <label className="flex h-[60px] w-[240px] items-center gap-3 rounded-[20px] border-[3px] border-brown-muted bg-white px-4">
+          <label className="flex h-[60px] w-[240px] items-center gap-3 rounded-[20px] border-[3px] border-brown-muted bg-cream px-4 focus-within:border-brown-dark">
             <span className="sr-only">
               {product.kind === 'installment' ? '월 저축 금액' : '예치 금액'}
             </span>
@@ -91,7 +91,7 @@ export default function BankProductDetail({
               aria-describedby="bank-input-status"
               onChange={(event) => setAmount(event.target.value)}
               placeholder={product.kind === 'deposit' ? '예치할 금액' : '매달 저축할 금액'}
-              className="w-full min-w-0 bg-transparent text-2xl text-brown-dark outline-none placeholder:text-brown-muted focus-visible:ring-2 focus-visible:ring-brown-dark"
+              className="w-full min-w-0 bg-transparent text-2xl text-brown-dark outline-none placeholder:text-brown-muted"
             />
           </label>
           <label className="relative">
@@ -100,7 +100,7 @@ export default function BankProductDetail({
               value={term}
               aria-describedby="bank-input-status"
               onChange={(event) => setTerm(event.target.value)}
-              className="h-[60px] w-[206px] appearance-none rounded-[20px] border-[3px] border-brown-muted bg-white pr-10 pl-4 text-2xl text-brown-dark focus-visible:outline-3 focus-visible:outline-brown-dark"
+              className="h-[60px] w-[206px] appearance-none rounded-[20px] border-[3px] border-brown-muted bg-cream pr-10 pl-4 text-2xl text-brown-dark focus-visible:border-brown-dark focus-visible:outline-none"
             >
               <option value="">만기 개월 수</option>
               {product.termMonths ? (
@@ -123,7 +123,7 @@ export default function BankProductDetail({
           </label>
           <p className="text-xl text-brown-muted" aria-live="polite">
             만기 시 약{' '}
-            <span className="text-2xl text-brown-dark">
+            <span className="text-2xl text-brown-muted">
               {estimate === null ? '-' : estimate.toLocaleString('ko-KR') + '코인'}
             </span>
           </p>
@@ -133,6 +133,7 @@ export default function BankProductDetail({
             닫기
           </Button>
           <Button
+            variant="bank"
             disabled={!canSubscribe}
             onClick={() => {
               if (canSubscribe) onSubscribe(numericAmount, months);
@@ -145,7 +146,7 @@ export default function BankProductDetail({
       <p
         id="bank-input-status"
         role="status"
-        className={`absolute bottom-4 left-20 text-base ${invalidAmount || insufficientFunds ? 'text-red' : 'text-brown-muted'}`}
+        className={`mt-4 text-base ${invalidAmount || insufficientFunds ? 'text-red' : 'text-brown-muted'}`}
       >
         {inputStatus}
       </p>
