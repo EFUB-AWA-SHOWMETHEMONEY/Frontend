@@ -28,17 +28,19 @@ interface Frame {
 function parseFrames(raw: string): Frame[] {
   return raw
     .split('\0')
-    .map((chunk) => chunk.replace(/^\n+/, ''))
+    .map((chunk) => chunk.replace(/^(\r?\n)+/, ''))
     .filter((chunk) => chunk.length > 0)
     .map((chunk) => {
-      const [head, ...rest] = chunk.split('\n\n');
-      const [command, ...headerLines] = head.split('\n');
+      const sep = /\r?\n\r?\n/.exec(chunk);
+      const head = sep ? chunk.slice(0, sep.index) : chunk;
+      const body = sep ? chunk.slice(sep.index + sep[0].length) : '';
+      const [command, ...headerLines] = head.split(/\r?\n/);
       const headers: Record<string, string> = {};
       for (const line of headerLines) {
         const idx = line.indexOf(':');
         if (idx > 0) headers[line.slice(0, idx)] = line.slice(idx + 1);
       }
-      return { command: command.trim(), headers, body: rest.join('\n\n') };
+      return { command: command.trim(), headers, body };
     });
 }
 
@@ -53,6 +55,7 @@ function buildFrame(command: string, headers: Record<string, string>, body = '')
 
 interface Client {
   ws: WebSocket;
+  authenticated: boolean; // CONNECT 인증을 통과 여부
   memberId: number;
   nickname: string;
   subscriptions: Map<string, string>;
@@ -177,10 +180,17 @@ function handleChat(client: Client, body: string) {
   });
 }
 
+// memberId별 연결 수
+const plazaConnections = new Map<number, number>();
+
 // 구독 시작 시 광장 입장 처리
 function joinPlaza(client: Client) {
   if (client.inPlaza) return;
   client.inPlaza = true;
+  const count = plazaConnections.get(client.memberId) ?? 0;
+  plazaConnections.set(client.memberId, count + 1);
+  if (count > 0) return; // 이미 다른 탭으로 입장해 있으면 위치 유지, 입장 알림 생략
+
   const me: PlazaParticipant = {
     memberId: client.memberId,
     nickname: client.nickname,
@@ -195,12 +205,46 @@ function joinPlaza(client: Client) {
 function leavePlaza(client: Client) {
   if (!client.inPlaza) return;
   client.inPlaza = false;
+  const count = (plazaConnections.get(client.memberId) ?? 1) - 1;
+  if (count > 0) {
+    plazaConnections.set(client.memberId, count);
+    return; // 다른 탭이 남아 있으면 광장에 그대로 둠
+  }
+
+  plazaConnections.delete(client.memberId);
   participants.delete(client.memberId);
+  moveSeqs.delete(client.memberId);
   broadcastPlaza({ type: 'user_left', memberId: client.memberId, ts: Date.now() });
+}
+
+// 구독 목록이 바뀔 때마다 호출: 광장 구독이 하나라도 있으면 입장, 하나도 없으면 퇴장
+function syncPlazaPresence(client: Client) {
+  const hasPlazaSub = [...client.subscriptions.values()].includes(STOMP_DEST.PLAZA_TOPIC);
+  if (hasPlazaSub) joinPlaza(client);
+  else leavePlaza(client);
+}
+
+// CONNECT 인증 실패: ERROR 프레임을 보내고 연결 종료
+function rejectConnect(client: Client, errorCode: SocketError['errorCode'], message: string) {
+  const error = makeError(errorCode, message);
+  client.ws.send(
+    buildFrame(
+      'ERROR',
+      { message: error.errorCode, 'content-type': 'application/json' },
+      JSON.stringify(error),
+    ),
+  );
+  client.ws.close();
 }
 
 // STOMP 명령 처리
 function handleFrame(client: Client, frame: Frame) {
+  const isConnectFrame = frame.command === 'CONNECT' || frame.command === 'STOMP';
+  if (!client.authenticated && !isConnectFrame) {
+    rejectConnect(client, 'INVALID_STOMP_AUTH_HEADER', 'CONNECT 인증 후에 요청해주세요.');
+    return;
+  }
+
   switch (frame.command) {
     case 'CONNECT':
     case 'STOMP': {
@@ -208,20 +252,18 @@ function handleFrame(client: Client, frame: Frame) {
       const auth = frame.headers['Authorization'] ?? frame.headers['authorization'];
       const token = auth?.replace(/^Bearer\s+/, '').trim();
       if (!auth?.startsWith('Bearer ') || !token) {
-        const error = makeError('INVALID_STOMP_AUTH_HEADER', 'STOMP 인증 헤더가 필요합니다.');
-        client.ws.send(
-          buildFrame(
-            'ERROR',
-            { message: error.errorCode, 'content-type': 'application/json' },
-            JSON.stringify(error),
-          ),
-        );
-        client.ws.close();
+        rejectConnect(client, 'INVALID_STOMP_AUTH_HEADER', 'STOMP 인증 헤더가 필요합니다.');
         return;
       }
-      client.nickname = decodeURIComponent(token);
+      try {
+        client.nickname = decodeURIComponent(token);
+      } catch {
+        rejectConnect(client, 'INVALID_AUTH_TOKEN', '유효하지 않은 인증 토큰입니다.');
+        return;
+      }
       if (!memberIds.has(client.nickname)) memberIds.set(client.nickname, nextMemberId++);
       client.memberId = memberIds.get(client.nickname)!;
+      client.authenticated = true;
       client.ws.send(buildFrame('CONNECTED', { version: '1.2', 'heart-beat': '0,0' }));
       console.log(`연결: ${client.nickname}`);
       return;
@@ -230,14 +272,13 @@ function handleFrame(client: Client, frame: Frame) {
     case 'SUBSCRIBE': {
       const { id, destination } = frame.headers;
       client.subscriptions.set(id, destination);
-      if (destination === STOMP_DEST.PLAZA_TOPIC) joinPlaza(client);
+      syncPlazaPresence(client);
       return;
     }
 
     case 'UNSUBSCRIBE': {
-      const dest = client.subscriptions.get(frame.headers.id);
       client.subscriptions.delete(frame.headers.id);
-      if (dest === STOMP_DEST.PLAZA_TOPIC) leavePlaza(client);
+      syncPlazaPresence(client);
       return;
     }
 
@@ -378,6 +419,7 @@ const wss = new WebSocketServer({
 wss.on('connection', (ws) => {
   const client: Client = {
     ws,
+    authenticated: false,
     memberId: 0,
     nickname: '',
     subscriptions: new Map(),
@@ -388,12 +430,18 @@ wss.on('connection', (ws) => {
   clients.add(client);
 
   ws.on('message', (data) => {
-    for (const frame of parseFrames(data.toString())) handleFrame(client, frame);
+    for (const frame of parseFrames(data.toString())) {
+      if (ws.readyState !== WebSocket.OPEN) break;
+      handleFrame(client, frame);
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.error(`연결 오류: ${client.nickname || '(미인증)'}`, error.message);
   });
 
   ws.on('close', () => {
     leavePlaza(client);
-    moveSeqs.delete(client.memberId);
     clients.delete(client);
     if (client.nickname) console.log(`연결 종료: ${client.nickname}`);
   });
