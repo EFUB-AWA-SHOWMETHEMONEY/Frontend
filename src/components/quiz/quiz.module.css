@@ -144,6 +144,7 @@
 }
 
 .statusCard {
+  transform: translateX(1px);
   width: 641px;
   height: 250px;
   border-radius: 20px;
@@ -164,7 +165,7 @@
 }
 
 .rewardCard[data-correct='true'] {
-  background: #e8f4fa;
+  background: #dce9fc;
   outline-color: #3b82e6;
 }
 
