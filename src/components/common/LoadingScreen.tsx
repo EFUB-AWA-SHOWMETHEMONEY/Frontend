@@ -20,7 +20,7 @@ export default function LoadingScreen({ scene, progress }: LoadingScreenProps) {
     label,
     backgroundImage,
     fallbackColor,
-    textClassName = 'text-white',
+    textClassName = 'text-ivory-light',
   }: LoadingScene = LOADING_SCENES[scene];
   const fakeProgress = useFakeProgress();
   const value = progress ?? fakeProgress;
