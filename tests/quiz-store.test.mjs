@@ -53,7 +53,15 @@ test('O and X each persist one reward; repeated submissions cannot overwrite it'
     store.getState().submit(answer === 'O' ? 'X' : 'O');
     assert.equal(localStorage.getItem(key), saved);
     assert.equal(store.getState().record.rewarded, true);
+    assert.equal(store.getState().record.reward, answer === 'O' ? 100 : 10);
+    assert.equal(store.getState().totalRewards, answer === 'O' ? 100 : 10);
     assert.equal(store.getState().screen, answer === 'O' ? 'correct' : 'incorrect');
+    const restored = loadStore().useQuizStore;
+    restored.getState().enter();
+    assert.equal(restored.getState().screen, 'completed');
+    assert.equal(restored.getState().totalRewards, answer === 'O' ? 100 : 10);
+    restored.getState().submit(answer);
+    assert.equal(localStorage.getItem(key), saved);
   }
 });
 
@@ -74,7 +82,7 @@ test('reload retains the result, but reentry and subsequent reload retain comple
   assert.equal(store.getState().screen, 'completed');
 });
 
-test('expired and malformed records allow a new question', (t) => {
+test('midnight resets participation but preserves rewards across days and reloads', (t) => {
   browser(t);
   const { useQuizStore: store, QUIZ_STORAGE_KEY: key } = loadStore();
   localStorage.setItem(key, '{broken');
@@ -87,7 +95,44 @@ test('expired and malformed records allow a new question', (t) => {
   store.getState().tick();
   assert.equal(store.getState().screen, 'question');
   assert.equal(store.getState().record, null);
-  assert.equal(localStorage.getItem(key), null);
+  assert.equal(store.getState().totalRewards, 100);
+  assert.notEqual(localStorage.getItem(key), null);
+  store.getState().submit('X');
+  assert.equal(store.getState().totalRewards, 110);
+  const restored = loadStore().useQuizStore;
+  restored.getState().enter();
+  assert.equal(restored.getState().screen, 'completed');
+  assert.equal(restored.getState().totalRewards, 110);
+});
+
+test('legacy O/X records retain participation with the corresponding reward', (t) => {
+  browser(t);
+  for (const answer of ['O', 'X']) {
+    const { useQuizStore: store, QUIZ_STORAGE_KEY: key, localDate } = loadStore();
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        date: localDate(new Date()),
+        answer,
+        correct: answer === 'O',
+        rewarded: true,
+      }),
+    );
+    store.getState().enter();
+    assert.equal(store.getState().screen, 'completed');
+    assert.equal(store.getState().totalRewards, answer === 'O' ? 100 : 10);
+  }
+});
+
+test('duplicated saved attempts cannot multiply the same daily reward', (t) => {
+  browser(t);
+  const { useQuizStore: store, QUIZ_STORAGE_KEY: key } = loadStore();
+  store.getState().enter();
+  store.getState().submit('O');
+  const record = store.getState().record;
+  localStorage.setItem(key, JSON.stringify({ version: 2, attempts: [record, record] }));
+  store.getState().tick();
+  assert.equal(store.getState().totalRewards, 100);
 });
 
 test('storage failure does not claim that a reward was paid', (t) => {

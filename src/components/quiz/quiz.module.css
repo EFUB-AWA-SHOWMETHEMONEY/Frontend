@@ -125,12 +125,8 @@
   color: var(--color-red);
 }
 
-.correctAnswer {
-  width: 641px;
-}
-
-.correctAnswer button {
-  cursor: default;
+.resultTitle[data-correct='true'] {
+  color: #3b82e6;
 }
 
 .resultQuestion {
@@ -165,6 +161,11 @@
   padding-top: 46px;
   background: var(--color-red-light);
   outline-color: var(--color-red);
+}
+
+.rewardCard[data-correct='true'] {
+  background: #e8f4fa;
+  outline-color: #3b82e6;
 }
 
 .rewardAmount {

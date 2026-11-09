@@ -8,6 +8,7 @@ export interface QuizParticipation {
   answer: QuizAnswer;
   correct: boolean;
   rewarded: boolean;
+  reward: number;
 }
 
 // Demo UI persistence only: this is NOT a user/account security or reward ledger.
@@ -29,24 +30,43 @@ export function formatCountdown(seconds: number) {
   return `${pad(Math.floor(seconds / 3600))}h ${pad(Math.floor((seconds % 3600) / 60))}m ${pad(seconds % 60)}s`;
 }
 
-function readParticipation(date: string): QuizParticipation | null {
+function readLedger(): QuizParticipation[] {
   try {
     const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
-    if (!raw) return null;
-    const record = JSON.parse(raw) as QuizParticipation;
-    if (
-      record.date !== date ||
-      (record.answer !== 'O' && record.answer !== 'X') ||
-      record.correct !== (record.answer === dailyQuiz.answer) ||
-      record.rewarded !== true
-    ) {
-      localStorage.removeItem(QUIZ_STORAGE_KEY);
-      return null;
+    if (!raw) return [];
+    const saved = JSON.parse(raw);
+    // Accept the previous single-attempt demo record without losing participation.
+    const records: unknown[] = saved?.version === 2 ? saved.attempts : [saved];
+    if (!Array.isArray(records)) return [];
+    const attempts = new Map<string, QuizParticipation>();
+    for (const value of records) {
+      if (!value || typeof value !== 'object') continue;
+      const record = value as QuizParticipation;
+      if (
+        typeof record.date !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(record.date) ||
+        (record.answer !== 'O' && record.answer !== 'X') ||
+        record.correct !== (record.answer === dailyQuiz.answer) ||
+        record.rewarded !== true
+      )
+        continue;
+      const reward =
+        record.reward ?? (record.correct ? dailyQuiz.correctReward : dailyQuiz.incorrectReward);
+      if (!Number.isSafeInteger(reward) || reward < 0) continue;
+      // One saved reward per local date, even if persisted entries are duplicated.
+      if (!attempts.has(record.date)) attempts.set(record.date, { ...record, reward });
     }
-    return record;
+    return [...attempts.values()];
   } catch {
-    return null;
+    return [];
   }
+}
+
+function participation(attempts: QuizParticipation[], date: string) {
+  return {
+    record: attempts.find((attempt) => attempt.date === date) ?? null,
+    totalRewards: attempts.reduce((total, attempt) => total + attempt.reward, 0),
+  };
 }
 
 function rememberResult(record: QuizParticipation | null) {
@@ -62,6 +82,7 @@ function rememberResult(record: QuizParticipation | null) {
 interface QuizState {
   screen: QuizScreen;
   record: QuizParticipation | null;
+  totalRewards: number;
   date: string;
   remainingSeconds: number;
   ready: boolean;
@@ -77,6 +98,7 @@ let enteredThisDocument = false;
 export const useQuizStore = create<QuizState>((set, get) => ({
   screen: 'question',
   record: null,
+  totalRewards: 0,
   date: '',
   remainingSeconds: 0,
   ready: false,
@@ -84,7 +106,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   enter: () => {
     const now = new Date();
     const date = localDate(now);
-    const record = readParticipation(date);
+    const { record, totalRewards } = participation(readLedger(), date);
     const entry = window.history.state?.[RESULT_ENTRY_KEY] as QuizParticipation | undefined;
     const navigation = performance.getEntriesByType('navigation')[0] as
       PerformanceNavigationTiming | undefined;
@@ -99,6 +121,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     set({
       date,
       record,
+      totalRewards,
       ready: true,
       storageError: null,
       remainingSeconds: secondsUntilMidnight(now),
@@ -115,7 +138,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const now = new Date();
     const date = localDate(now);
     const state = get();
-    const record = readParticipation(date);
+    const { record, totalRewards } = participation(readLedger(), date);
     if (date !== state.date) {
       rememberResult(null);
       set({ date, record, screen: record ? 'completed' : 'question', storageError: null });
@@ -123,16 +146,17 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       // Synchronize other tabs; never add reward amounts to the member ledger.
       set({ record, screen: record ? 'completed' : 'question' });
     }
-    set({ remainingSeconds: secondsUntilMidnight(now) });
+    set({ totalRewards, remainingSeconds: secondsUntilMidnight(now) });
   },
   submit: (answer) => {
     const state = get();
     if (!state.ready || state.screen !== 'question') return;
     const now = new Date();
     const date = localDate(now);
-    const existing = readParticipation(date);
+    const attempts = readLedger();
+    const { record: existing, totalRewards } = participation(attempts, date);
     if (existing) {
-      set({ date, record: existing, screen: 'completed' });
+      set({ date, record: existing, totalRewards, screen: 'completed' });
       return;
     }
     const record: QuizParticipation = {
@@ -140,10 +164,15 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       answer,
       correct: answer === dailyQuiz.answer,
       rewarded: true,
+      reward: answer === dailyQuiz.answer ? dailyQuiz.correctReward : dailyQuiz.incorrectReward,
     };
     try {
-      // Record once, then derive the demo balance from it (never increment).
-      localStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(record));
+      // Save participation and reward atomically. Midnight only resets eligibility;
+      // the saved reward history remains separate from the shared member ledger.
+      localStorage.setItem(
+        QUIZ_STORAGE_KEY,
+        JSON.stringify({ version: 2, attempts: [...attempts, record] }),
+      );
     } catch {
       set({
         storageError: '참여 기록을 저장할 수 없어요. 브라우저 저장 공간 설정을 확인해주세요.',
@@ -151,7 +180,13 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       return;
     }
     rememberResult(record);
-    set({ date, record, screen: record.correct ? 'correct' : 'incorrect', storageError: null });
+    set({
+      date,
+      record,
+      totalRewards: totalRewards + record.reward,
+      screen: record.correct ? 'correct' : 'incorrect',
+      storageError: null,
+    });
   },
   leave: () => {
     rememberResult(null);

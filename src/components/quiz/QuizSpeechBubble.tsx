@@ -3,15 +3,19 @@ import { dailyQuiz } from '@/constants/quiz';
 import type { QuizScreen } from '@/stores/quizStore';
 
 export default function QuizSpeechBubble({ screen = 'question' }: { screen?: QuizScreen }) {
-  const result = screen === 'incorrect';
+  const result = screen === 'correct' || screen === 'incorrect';
   const completed = screen === 'completed';
   return (
     <section className={styles.speech} aria-labelledby="quiz-question">
       <div className={`${styles.speechBody}${result ? ` ${styles.resultBody}` : ''}`}>
         {result ? (
           <>
-            <h1 id="quiz-question" className={styles.resultTitle}>
-              아쉬워요, 오답이에요.
+            <h1
+              id="quiz-question"
+              className={styles.resultTitle}
+              data-correct={screen === 'correct'}
+            >
+              {screen === 'correct' ? '정답이에요!' : '아쉬워요, 오답이에요.'}
             </h1>
             <p className={styles.resultQuestion}>{dailyQuiz.question}</p>
             <p className={styles.explanation}>{dailyQuiz.explanation}</p>
@@ -26,11 +30,9 @@ export default function QuizSpeechBubble({ screen = 'question' }: { screen?: Qui
             <h1 id="quiz-question" className={styles.question}>
               {completed ? '다음 퀴즈를 기다려주세요.' : dailyQuiz.question}
             </h1>
-            {screen !== 'correct' && (
-              <p className={styles.hint}>
-                {completed ? '매일 자정에 초기화돼요.' : '맞으면 O, 아니면 X를 선택해주세요'}
-              </p>
-            )}
+            <p className={styles.hint}>
+              {completed ? '매일 자정에 초기화돼요.' : '맞으면 O, 아니면 X를 선택해주세요'}
+            </p>
           </>
         )}
       </div>

@@ -34,12 +34,9 @@ export default function QuizPage() {
               <QuizAnswerButton answer="O" selected={false} onSelect={submit} />
               <QuizAnswerButton answer="X" selected={false} onSelect={submit} />
             </div>
-          ) : screen === 'correct' ? (
-            <div className={styles.correctAnswer} aria-label="정답 결과">
-              <QuizAnswerButton answer="O" selected disabled onSelect={submit} />
-            </div>
           ) : (
             <QuizStatusCard
+              correct={screen === 'correct'}
               completed={screen === 'completed'}
               remainingSeconds={remainingSeconds}
             />

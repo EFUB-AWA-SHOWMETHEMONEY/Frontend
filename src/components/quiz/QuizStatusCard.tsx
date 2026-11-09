@@ -5,9 +5,11 @@ import styles from './quiz.module.css';
 
 export default function QuizStatusCard({
   completed,
+  correct,
   remainingSeconds,
 }: {
   completed: boolean;
+  correct: boolean;
   remainingSeconds: number;
 }) {
   return completed ? (
@@ -21,10 +23,15 @@ export default function QuizStatusCard({
       </p>
     </section>
   ) : (
-    <section className={`${styles.statusCard} ${styles.rewardCard}`} aria-label="참여 보상">
-      <h2 className={styles.cardTitle}>참여 보상</h2>
+    <section
+      className={`${styles.statusCard} ${styles.rewardCard}`}
+      data-correct={correct}
+      aria-label={correct ? '정답 보상' : '참여 보상'}
+    >
+      <h2 className={styles.cardTitle}>{correct ? '정답 보상' : '참여 보상'}</h2>
       <p className={styles.rewardAmount}>
-        <Image src="/assets/ui/coin.svg" alt="" width={54} height={54} />+{dailyQuiz.reward}
+        <Image src="/assets/ui/coin.svg" alt="" width={54} height={54} />+
+        {correct ? dailyQuiz.correctReward : dailyQuiz.incorrectReward}
       </p>
       <p className={styles.rewardHint}>보유 화폐에 보상이 지급되었습니다.</p>
     </section>

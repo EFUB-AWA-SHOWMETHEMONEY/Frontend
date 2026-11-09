@@ -13,7 +13,7 @@ export default function MainShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const nickname = useStore(memberStore, (state) => state.nickname);
   const balance = useStore(memberStore, (state) => state.balance);
-  const quizRewarded = useQuizStore((state) => state.record?.rewarded === true);
+  const quizRewards = useQuizStore((state) => state.totalRewards);
   useEffect(() => {
     void hydrateMemberStore();
   }, []);
@@ -21,11 +21,7 @@ export default function MainShell({ children }: { children: ReactNode }) {
   const header = (
     <Header
       nickname={nickname}
-      balance={
-        pathname === '/quiz'
-          ? dailyQuiz.initialBalance + (quizRewarded ? dailyQuiz.reward : 0)
-          : balance
-      }
+      balance={pathname === '/quiz' ? dailyQuiz.initialBalance + quizRewards : balance}
     />
   );
   if (pathname === '/bank') {
