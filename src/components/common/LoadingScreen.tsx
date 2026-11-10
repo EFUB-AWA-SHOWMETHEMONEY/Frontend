@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import Image from 'next/image';
 import ProgressBar from '@/components/common/ProgressBar';
 import {
@@ -24,6 +25,7 @@ export default function LoadingScreen({ scene, progress }: LoadingScreenProps) {
   }: LoadingScene = LOADING_SCENES[scene];
   const fakeProgress = useFakeProgress();
   const value = progress ?? fakeProgress;
+  const labelId = useId();
 
   return (
     <div
@@ -39,8 +41,8 @@ export default function LoadingScreen({ scene, progress }: LoadingScreenProps) {
         priority
         className="h-auto max-w-[80vw] pb-7"
       />
-      <ProgressBar value={value} />
-      <p role="status" className={`${textClassName} text-[24px]`}>
+      <ProgressBar value={value} labelledBy={labelId} indeterminate={progress === undefined} />
+      <p id={labelId} role="status" className={`${textClassName} text-[24px]`}>
         {label}으로 이동 중...
       </p>
     </div>
