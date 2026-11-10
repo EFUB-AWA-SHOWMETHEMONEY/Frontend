@@ -9,11 +9,13 @@ import {
   type PlazaRect,
 } from '@/constants/plaza';
 
-const inRect = (px: number, py: number, r: PlazaRect) =>
-  px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+export const px = (value: number) => `calc(${value}px * var(--s))`;
 
-const isWalkablePoint = (px: number, py: number) =>
-  PLAZA_WALKABLE.some((r) => inRect(px, py, r)) && !PLAZA_BLOCKED.some((r) => inRect(px, py, r));
+const inRect = (x: number, y: number, r: PlazaRect) =>
+  x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+
+const isWalkablePoint = (x: number, y: number) =>
+  PLAZA_WALKABLE.some((r) => inRect(x, y, r)) && !PLAZA_BLOCKED.some((r) => inRect(x, y, r));
 
 export function canStandAt(x: number, y: number) {
   const half = PLAYER_FOOT.w / 2;

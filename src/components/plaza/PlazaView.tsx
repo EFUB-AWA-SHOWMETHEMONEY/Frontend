@@ -1,21 +1,22 @@
 'use client';
 
 import Image from 'next/image';
-import type { CSSProperties } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import { useStore } from 'zustand';
+import { CharacterBody, RemoteCharacter } from '@/components/plaza/PlazaCharacter';
 import {
   BUILDING_SIGNS,
-  PLAYER_SPRITE,
   PLAZA_BACKGROUND,
   PLAZA_IMAGE_DIR,
   PLAZA_OBJECTS,
 } from '@/constants/plaza';
 import { usePlayerMovement } from '@/hooks/usePlayerMovement';
 import { usePlazaScale } from '@/hooks/usePlazaScale';
+import { usePlazaSocket } from '@/hooks/usePlazaSocket';
 import { memberStore } from '@/stores/memberStore';
+import { plazaStore } from '@/stores/plazaStore';
 import { PLAZA_HEIGHT, PLAZA_WIDTH } from '@/types/socket';
-
-const px = (value: number) => `calc(${value}px * var(--s))`;
+import { px } from '@/utils/plaza';
 
 const BUILDING_LABELS = Object.fromEntries(
   PLAZA_OBJECTS.filter((o) => o.label).map((o) => [o.id, o.label!]),
@@ -23,8 +24,18 @@ const BUILDING_LABELS = Object.fromEntries(
 
 export default function PlazaView() {
   const { viewportRef, scale } = usePlazaScale();
-  const { playerRef, pendingEntranceId } = usePlayerMovement();
+  const { playerRef, positionRef, pendingEntranceId } = usePlayerMovement();
+  usePlazaSocket(positionRef);
   const nickname = useStore(memberStore, (state) => state.nickname);
+  const participants = useStore(plazaStore, (state) => state.participants);
+  const myMemberId = useStore(plazaStore, (state) => state.myMemberId);
+  const others = useMemo(
+    () =>
+      myMemberId === null
+        ? []
+        : Object.values(participants).filter((p) => p.memberId !== myMemberId),
+    [participants, myMemberId],
+  );
 
   return (
     <div ref={viewportRef} className="mx-[50px] flex justify-center max-md:mx-4">
@@ -92,25 +103,12 @@ export default function PlazaView() {
             top: 'calc(var(--y) * var(--s) * 1px)',
           }}
         >
-          <div className="absolute bottom-0 left-0 -translate-x-1/2">
-            <span
-              className="absolute bottom-full left-1/2 mb-[calc(2px*var(--s))] -translate-x-1/2 rounded-full bg-brown-dark/70 px-[calc(3px*var(--s))] leading-tight whitespace-nowrap text-ivory"
-              style={{ fontSize: px(5) }}
-            >
-              {nickname}
-            </span>
-            <Image
-              src="/assets/ui/avatar-tiger.svg"
-              alt="내 캐릭터"
-              width={PLAYER_SPRITE.w}
-              height={PLAYER_SPRITE.h}
-              unoptimized
-              draggable={false}
-              className="block max-w-none"
-              style={{ width: px(PLAYER_SPRITE.w), height: px(PLAYER_SPRITE.h) }}
-            />
-          </div>
+          <CharacterBody nickname={nickname} isMe />
         </div>
+
+        {others.map((participant) => (
+          <RemoteCharacter key={participant.memberId} participant={participant} />
+        ))}
 
         {pendingEntranceId && (
           <p
