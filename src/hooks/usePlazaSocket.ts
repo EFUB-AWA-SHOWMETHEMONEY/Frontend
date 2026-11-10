@@ -83,12 +83,12 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
     return () => {
       window.clearInterval(timer);
       abort.abort();
+      store.reset();
       try {
         subscription.unsubscribe();
       } catch {
         return;
       }
-      store.reset();
     };
   }, [client, isConnected, positionRef]);
 }
