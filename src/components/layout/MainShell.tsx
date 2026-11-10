@@ -6,16 +6,24 @@ import { useStore } from 'zustand';
 import Header from './Header';
 import BankViewport from '@/components/bank/BankViewport';
 import { hydrateMemberStore, memberStore } from '@/stores/memberStore';
+import { useQuizStore } from '@/stores/quizStore';
+import { dailyQuiz } from '@/constants/quiz';
 
 export default function MainShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const nickname = useStore(memberStore, (state) => state.nickname);
   const balance = useStore(memberStore, (state) => state.balance);
+  const quizRewards = useQuizStore((state) => state.totalRewards);
   useEffect(() => {
     void hydrateMemberStore();
   }, []);
 
-  const header = <Header nickname={nickname} balance={balance} />;
+  const header = (
+    <Header
+      nickname={nickname}
+      balance={pathname === '/quiz' ? dailyQuiz.initialBalance + quizRewards : balance}
+    />
+  );
   if (pathname === '/bank') {
     return (
       <BankViewport>

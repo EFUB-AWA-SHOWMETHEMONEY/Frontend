@@ -1,0 +1,206 @@
+.screen {
+  --quiz-text-sub2: #b3a79c;
+  color: var(--color-brown-dark);
+  /* ShopViewport already starts at header.bottom + min(48px, 4vh).
+     The exported panel starts at y=173, including its outside stroke. */
+  padding-top: calc(45px - min(48px, 4vh));
+  padding-bottom: 40px;
+}
+
+.shop {
+  display: block;
+  width: 1826px;
+  height: auto;
+  margin-left: 47px;
+}
+
+.quizRow {
+  display: flex;
+  width: 1820px;
+  height: 250px;
+  margin: 27px 50px 0;
+  justify-content: space-between;
+}
+
+.speech {
+  position: relative;
+  width: 1134.94px;
+  flex-shrink: 0;
+}
+
+.speechBody {
+  position: absolute;
+  top: 48.01px;
+  width: 100%;
+  height: 201.99px;
+  padding: 35px 74px 0;
+  border-radius: 20px;
+  background: white;
+  outline: 3px solid var(--color-brown-dark);
+  box-shadow: 0 8px 0 var(--color-brown-dark);
+}
+
+.tail {
+  position: absolute;
+  top: -4px;
+  left: 124px;
+  overflow: visible;
+}
+
+.greeting {
+  font-size: 24px;
+  line-height: 29px;
+  color: var(--color-brown-muted);
+}
+
+.question {
+  margin-top: 20px;
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 50px;
+  white-space: nowrap;
+}
+
+.hint {
+  margin-top: 5px;
+  font-size: 24px;
+  line-height: 29px;
+  color: var(--quiz-text-sub2);
+}
+
+.answers {
+  display: flex;
+  gap: 45px;
+}
+
+.answer {
+  display: flex;
+  width: 298px;
+  height: 250px;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 20px;
+  background: white;
+  outline: 3px solid var(--color-brown-dark);
+  box-shadow: 0 8px 0 var(--color-brown-dark);
+  cursor: pointer;
+}
+
+.answer:focus-visible {
+  outline-offset: 6px;
+}
+
+.symbol {
+  height: 168px;
+  margin-top: 11px;
+  font-size: 160px;
+  line-height: 200px;
+  color: #3b82e6;
+}
+
+.symbol[data-answer='X'] {
+  color: var(--color-red);
+}
+
+.answerLabel {
+  font-size: 32px;
+  line-height: 40px;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 35px;
+}
+
+/* Result-only styles: keep the approved question geometry above unchanged. */
+.resultBody {
+  padding: 34px 45px 0;
+}
+
+.resultTitle {
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 50px;
+  color: var(--color-red);
+}
+
+.resultTitle[data-correct='true'] {
+  color: #3b82e6;
+}
+
+.resultQuestion {
+  margin-top: 6px;
+  font-size: 24px;
+  line-height: 29px;
+  color: var(--quiz-text-sub2);
+}
+
+.explanation {
+  margin-top: 21px;
+  font-size: 24px;
+  line-height: 29px;
+  white-space: nowrap;
+}
+
+.statusCard {
+  transform: translateX(1px);
+  width: 641px;
+  height: 250px;
+  border-radius: 20px;
+  outline: 3px solid var(--color-brown-dark);
+  text-align: center;
+}
+
+.cardTitle {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 40px;
+}
+
+.rewardCard {
+  padding-top: 46px;
+  background: var(--color-red-light);
+  outline-color: var(--color-red);
+}
+
+.rewardCard[data-correct='true'] {
+  background: #dce9fc;
+  outline-color: #3b82e6;
+}
+
+.rewardAmount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 20px;
+  font-size: 48px;
+  line-height: 60px;
+}
+
+.rewardHint {
+  margin-top: 8px;
+  color: var(--color-brown-muted);
+  font-size: 24px;
+  line-height: 29px;
+}
+
+.countdownCard {
+  padding-top: 55px;
+  background: var(--color-ivory);
+}
+
+.countdown {
+  margin-top: 20px;
+  font-size: 64px;
+  line-height: 80px;
+}
+
+.storageError {
+  position: absolute;
+  bottom: 8px;
+  width: 100%;
+  color: var(--color-red);
+  text-align: center;
+}

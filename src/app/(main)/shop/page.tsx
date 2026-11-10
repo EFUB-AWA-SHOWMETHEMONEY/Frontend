@@ -119,9 +119,8 @@ export default function ShopPage() {
               {notice && <ShopSuccessNotice key={notice.id} notice={notice} />}
               <Button
                 variant="secondary"
-                disabled
-                className="disabled:ml-auto disabled:border-b-8 disabled:bg-[#e8f4fa] disabled:text-brown-dark"
-                title="오늘의 퀴즈는 아직 연결되지 않았어요"
+                onClick={() => router.push('/quiz')}
+                className="ml-auto border-b-8 bg-[#e8f4fa] text-brown-dark"
               >
                 오늘의 퀴즈 →
               </Button>
