@@ -1,8 +1,6 @@
 interface ProgressBarProps {
   value: number;
-  /** 진행률을 설명하는 안내 문구 요소의 id */
   labelledBy: string;
-  /** 실제 진행률을 모를 때 true. 화면에는 value를 그리되 aria-valuenow는 생략합니다. */
   indeterminate?: boolean;
 }
 
