@@ -6,7 +6,7 @@ const AUTH_BG = '/assets/backgrounds/login-bg.png';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="relative isolate flex min-h-screen items-center justify-center">
+    <main className="relative isolate flex min-h-screen flex-col items-center gap-6 px-4 py-8">
       <Image
         src={AUTH_BG}
         alt=""
@@ -21,9 +21,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         width={201}
         height={58}
         priority
-        className="absolute top-[60px] left-20"
+        className="self-start min-[1080px]:absolute min-[1080px]:top-[60px] min-[1080px]:left-20"
       />
-      {children}
+      <div className="my-auto">{children}</div>
     </main>
   );
 }
