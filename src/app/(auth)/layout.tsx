@@ -1,8 +1,8 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
+import { LOADING_SCENES } from '@/constants/loadingScenes';
 
-// TODO: 로딩 UI 브랜치 머지 후 LOADING_SCENES.login.backgroundImage로 교체
-const AUTH_BG = '/assets/backgrounds/login-bg.png';
+const AUTH_BG = LOADING_SCENES.login.backgroundImage;
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
