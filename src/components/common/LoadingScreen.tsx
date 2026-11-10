@@ -37,7 +37,6 @@ export default function LoadingScreen({ scene, progress }: LoadingScreenProps) {
         alt=""
         width={540}
         height={277}
-        unoptimized
         priority
         className="h-auto max-w-[80vw] pb-7"
       />
