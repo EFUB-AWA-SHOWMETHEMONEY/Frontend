@@ -1,9 +1,11 @@
 import { createStore } from 'zustand/vanilla';
-import type { PlazaEvent, PlazaParticipant } from '@/types/socket';
+import { CHAT_HISTORY_LIMIT } from '@/constants/plaza';
+import type { ChatMessageEvent, PlazaEvent, PlazaParticipant } from '@/types/socket';
 
 interface PlazaState {
   participants: Record<number, PlazaParticipant>;
   myMemberId: number | null;
+  messages: ChatMessageEvent[];
   setParticipants: (list: PlazaParticipant[]) => void;
   setMyMemberId: (memberId: number) => void;
   applyEvent: (event: PlazaEvent) => void;
@@ -13,6 +15,7 @@ interface PlazaState {
 export const plazaStore = createStore<PlazaState>()((set) => ({
   participants: {},
   myMemberId: null,
+  messages: [],
   setParticipants: (list) =>
     set({ participants: Object.fromEntries(list.map((p) => [p.memberId, p])) }),
   setMyMemberId: (memberId) => set({ myMemberId: memberId }),
@@ -44,9 +47,11 @@ export const plazaStore = createStore<PlazaState>()((set) => ({
               : { ...current, equippedItem: event.equippedItem };
           return { participants: { ...participants, [event.memberId]: next } };
         }
+        case 'chat_message':
+          return { messages: [...state.messages, event].slice(-CHAT_HISTORY_LIMIT) };
         default:
           return state;
       }
     }),
-  reset: () => set({ participants: {}, myMemberId: null }),
+  reset: () => set({ participants: {}, myMemberId: null, messages: [] }),
 }));

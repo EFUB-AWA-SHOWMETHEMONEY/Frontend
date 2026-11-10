@@ -34,12 +34,12 @@ export const BUILDING_ROUTES: Record<string, string | null> = {
   myhome: '/my-home',
 };
 
-export const BUILDING_SIGNS: { id: string; x: number; y: number; size: number }[] = [
-  { id: 'trade', x: 80, y: 38.5, size: 7 },
-  { id: 'auction', x: 240, y: 56, size: 5 },
-  { id: 'shop', x: 404, y: 36.5, size: 7 },
-  { id: 'bank', x: 56, y: 172, size: 5 },
-  { id: 'myhome', x: 430, y: 184, size: 5 },
+export const BUILDING_SIGNS: { id: string; x: number; y: number; size: number; color: string }[] = [
+  { id: 'trade', x: 82, y: 38.5, size: 6.5, color: '#3b2f26' },
+  { id: 'auction', x: 240, y: 56, size: 6, color: '#634a94' },
+  { id: 'shop', x: 410, y: 36.5, size: 6.5, color: '#c24e36' },
+  { id: 'bank', x: 56, y: 172, size: 5.5, color: '#8a6418' },
+  { id: 'myhome', x: 430, y: 184, size: 4.5, color: '#3f8050' },
 ];
 
 export const PLAZA_BLOCKED: PlazaRect[] = [
@@ -57,4 +57,6 @@ export const PLAYER_FOOT = { w: 8, h: 3 };
 export const PLAYER_SPRITE = { w: 16, h: 16 };
 export const ENTRANCE_RADIUS = 7;
 export const PLAZA_SPAWN_ID = 'plaza_in';
+export const CHAT_MAX_LENGTH = 100;
+export const CHAT_HISTORY_LIMIT = 50;
 export const PLAZA_RETURN_KEY = 'moamoa-plaza-return';

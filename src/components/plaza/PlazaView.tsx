@@ -1,9 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import { useMemo, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useStore } from 'zustand';
 import { CharacterBody, RemoteCharacter } from '@/components/plaza/PlazaCharacter';
+import PlazaChat from '@/components/plaza/PlazaChat';
+import PlazaToast from '@/components/plaza/PlazaToast';
 import {
   BUILDING_SIGNS,
   PLAZA_BACKGROUND,
@@ -17,6 +19,8 @@ import { memberStore } from '@/stores/memberStore';
 import { plazaStore } from '@/stores/plazaStore';
 import { PLAZA_HEIGHT, PLAZA_WIDTH } from '@/types/socket';
 import { px } from '@/utils/plaza';
+
+const WELCOME_DURATION_MS = 3000;
 
 const BUILDING_LABELS = Object.fromEntries(
   PLAZA_OBJECTS.filter((o) => o.label).map((o) => [o.id, o.label!]),
@@ -36,11 +40,23 @@ export default function PlazaView() {
         : Object.values(participants).filter((p) => p.memberId !== myMemberId),
     [participants, myMemberId],
   );
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowWelcome(false), WELCOME_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const toastMessage = pendingEntranceId
+    ? `${BUILDING_LABELS[pendingEntranceId]}은 준비 중이에요`
+    : showWelcome
+      ? `${nickname}님 안녕하세요. 오늘도 좋은 하루 되세요!`
+      : null;
 
   return (
-    <div ref={viewportRef} className="mx-[50px] flex justify-center max-md:mx-4">
+    <div ref={viewportRef} className="fixed inset-0 z-0 overflow-hidden">
       <div
-        className="relative overflow-hidden rounded-[20px] font-jua outline-[3px] outline-brown-dark [image-rendering:pixelated]"
+        className="absolute top-1/2 left-1/2 -translate-1/2 font-jua [image-rendering:pixelated]"
         style={
           {
             '--s': scale,
@@ -83,11 +99,12 @@ export default function PlazaView() {
         {BUILDING_SIGNS.map((sign) => (
           <span
             key={sign.id}
-            className="pointer-events-none absolute -translate-1/2 leading-none whitespace-nowrap text-brown-dark select-none"
+            className="pointer-events-none absolute -translate-1/2 leading-none whitespace-nowrap select-none"
             style={{
               left: px(sign.x),
               top: px(sign.y),
               fontSize: px(sign.size),
+              color: sign.color,
               zIndex: 1000,
             }}
           >
@@ -109,24 +126,10 @@ export default function PlazaView() {
         {others.map((participant) => (
           <RemoteCharacter key={participant.memberId} participant={participant} />
         ))}
-
-        {pendingEntranceId && (
-          <p
-            role="status"
-            className="absolute top-[calc(8px*var(--s))] left-1/2 -translate-x-1/2 rounded-full border-2 border-brown-dark bg-ivory px-[calc(8px*var(--s))] py-[calc(2px*var(--s))] whitespace-nowrap text-brown-dark"
-            style={{ fontSize: px(7), zIndex: 2000 }}
-          >
-            {BUILDING_LABELS[pendingEntranceId]}은 준비 중이에요
-          </p>
-        )}
-
-        <p
-          className="pointer-events-none absolute right-[calc(4px*var(--s))] bottom-[calc(3px*var(--s))] text-brown-dark/70"
-          style={{ fontSize: px(5), zIndex: 2000 }}
-        >
-          방향키 / WASD로 이동
-        </p>
       </div>
+
+      {toastMessage && <PlazaToast message={toastMessage} />}
+      <PlazaChat />
     </div>
   );
 }

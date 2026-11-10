@@ -42,7 +42,7 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
         return;
       }
       identify(event);
-      if (snapshotAt === null) buffered.push(event);
+      if (snapshotAt === null && event.type !== 'chat_message') buffered.push(event);
       else store.applyEvent(event);
     });
 

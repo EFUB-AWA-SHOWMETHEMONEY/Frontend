@@ -12,14 +12,14 @@ interface CharacterBodyProps {
 export function CharacterBody({ nickname, isMe = false }: CharacterBodyProps) {
   return (
     <div className="absolute bottom-0 left-0 -translate-x-1/2">
-      <span
-        className={`absolute bottom-full left-1/2 mb-[calc(2px*var(--s))] -translate-x-1/2 rounded-full px-[calc(3px*var(--s))] leading-tight whitespace-nowrap ${
-          isMe ? 'bg-brown-dark/70 text-ivory' : 'bg-ivory/80 text-brown-dark'
-        }`}
-        style={{ fontSize: px(5) }}
-      >
-        {nickname}
-      </span>
+      {!isMe && (
+        <span
+          className="absolute bottom-full left-1/2 mb-[calc(2px*var(--s))] -translate-x-1/2 rounded-full bg-brown-dark/80 px-[calc(3.5px*var(--s))] py-[calc(1px*var(--s))] leading-tight whitespace-nowrap text-white"
+          style={{ fontSize: px(4) }}
+        >
+          {nickname}
+        </span>
+      )}
       <Image
         src="/assets/ui/avatar-tiger.svg"
         alt={isMe ? '내 캐릭터' : `${nickname} 캐릭터`}
