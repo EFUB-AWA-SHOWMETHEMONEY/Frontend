@@ -20,7 +20,7 @@ export interface PlazaEntrance {
   y: number;
 }
 
-export const PLAZA_IMAGE_DIR = '/assets/plaza/1x';
+export const PLAZA_IMAGE_DIR = '/assets/plaza/buildings';
 export const PLAZA_BACKGROUND = `${PLAZA_IMAGE_DIR}/${layout.background}`;
 export const PLAZA_OBJECTS: PlazaObject[] = layout.objects;
 export const PLAZA_WALKABLE: PlazaRect[] = layout.walkable;
