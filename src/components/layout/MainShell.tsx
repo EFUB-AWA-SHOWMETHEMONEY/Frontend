@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useStore } from 'zustand';
 import Header from './Header';
 import BankViewport from '@/components/bank/BankViewport';
+import AuctionViewport from '@/components/auction/AuctionViewport';
 import { hydrateMemberStore, memberStore } from '@/stores/memberStore';
 
 export default function MainShell({ children }: { children: ReactNode }) {
@@ -16,6 +17,14 @@ export default function MainShell({ children }: { children: ReactNode }) {
   }, []);
 
   const header = <Header nickname={nickname} balance={balance} />;
+  if (pathname === '/auction') {
+    return (
+      <AuctionViewport>
+        {header}
+        <main>{children}</main>
+      </AuctionViewport>
+    );
+  }
   if (pathname === '/bank') {
     return (
       <BankViewport>

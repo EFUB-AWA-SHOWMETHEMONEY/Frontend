@@ -1,0 +1,245 @@
+.viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #292134;
+}
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top center;
+  visibility: hidden;
+  background:
+    linear-gradient(#0000004d, #0000004d),
+    url('/assets/backgrounds/auction-bg.webp') center / cover;
+  font-family: var(--font-jua-family);
+}
+.canvas > header {
+  position: absolute;
+  left: 50px;
+  top: 40px;
+  margin: 0;
+  width: 1820px;
+  height: 88px;
+  grid-template-columns: minmax(0, 1fr) 166px minmax(0, 1fr);
+  padding: 0 47px;
+  row-gap: 0;
+}
+.canvas > header > div,
+.canvas > header > img {
+  grid-column: auto;
+  grid-row: auto;
+}
+.page {
+  color: var(--color-brown-dark);
+}
+.toolbar {
+  position: absolute;
+  left: 63px;
+  right: 70px;
+  top: 176px;
+  height: 61px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.toolbar h1 {
+  font-size: 40px;
+  line-height: 49px;
+  color: black;
+  -webkit-text-stroke: 16px var(--color-ivory);
+  paint-order: stroke fill;
+}
+.plus {
+  margin-right: 12px;
+  font-size: 36px;
+}
+.panel {
+  position: absolute;
+  left: 50px;
+  top: 284px;
+  width: 1820px;
+  height: 659px;
+  border-radius: 20px;
+  background: var(--color-ivory);
+  padding: 40px 80px 32px;
+}
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.filters button:not(:first-child) {
+  width: 126px;
+}
+.cards {
+  display: flex;
+  gap: 40px;
+}
+.card {
+  width: 300px;
+  height: 441px;
+  padding: 20px;
+  border: 3px solid var(--color-brown-dark);
+  border-radius: 20px;
+  background: white;
+  flex-shrink: 0;
+}
+.itemImage {
+  height: 140px;
+  border-radius: 10px;
+  background: var(--color-cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.itemImage img {
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  height: 35px;
+  white-space: nowrap;
+}
+.identity h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 28px;
+  line-height: 35px;
+  color: black;
+}
+.badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 33px;
+  padding: 0 12px;
+  border-radius: 17px;
+  color: white;
+  font-size: 20px;
+}
+.public {
+  background: var(--color-badge-face);
+}
+.private {
+  background: #8064b5;
+}
+.price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  height: 35px;
+  font-size: 24px;
+  color: var(--color-brown-muted);
+}
+.price strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  font-size: 28px;
+  color: black;
+}
+.price strong.longPrice {
+  font-size: 14px;
+  gap: 4px;
+}
+.price strong.longPrice img {
+  width: 20px;
+  height: 20px;
+}
+.details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 49px;
+  border-top: 1px solid #eaeaea;
+  margin-top: 20px;
+  margin-bottom: 18px;
+  font-size: 20px;
+  color: var(--color-brown-muted);
+}
+.details strong,
+.details time {
+  margin-left: 6px;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--color-brown-dark);
+}
+.card > button {
+  height: 61px;
+}
+.card > button:disabled {
+  border-bottom-width: 3px;
+}
+.arrow {
+  position: absolute;
+  top: 320px;
+  width: 44px;
+  height: 64px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.previous {
+  left: 14px;
+}
+.previous img {
+  transform: rotate(180deg);
+}
+.next {
+  right: 14px;
+}
+.arrow:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+.pageNumber {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 28px;
+  line-height: 35px;
+  color: var(--color-brown-muted);
+}
+.exit {
+  position: absolute;
+  top: 977px;
+  left: 660px;
+}
+.notice {
+  position: absolute;
+  top: 240px;
+  right: 70px;
+  max-width: 1000px;
+  font-size: 22px;
+}
+.notice:not(:empty) {
+  border: 2px solid var(--color-brown-dark);
+  border-radius: 12px;
+  padding: 4px 16px;
+  background: var(--color-ivory);
+}
+.page button:enabled:hover {
+  filter: brightness(0.95);
+}
+.page button:enabled:active {
+  filter: brightness(0.9);
+}
+.page button:focus-visible {
+  outline: 3px solid var(--color-brown-dark);
+  outline-offset: 4px;
+}
