@@ -1,0 +1,214 @@
+.scope {
+  --auction-scale: 1;
+}
+.modal {
+  position: fixed;
+  inset: auto !important;
+  left: calc(50vw - 643px * var(--auction-scale)) !important;
+  top: calc(231.5px * var(--auction-scale)) !important;
+  width: 1286px !important;
+  height: 673px !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 40px !important;
+  overflow: visible !important;
+  transform: scale(var(--auction-scale));
+  transform-origin: top left;
+}
+.modal > h2 {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+}
+.modal > div:last-child {
+  position: absolute;
+  right: 40px;
+  bottom: 40px;
+  gap: 20px;
+}
+.subtitle {
+  position: absolute;
+  top: 47px;
+  left: 160px;
+  color: var(--color-brown-muted);
+  font-size: 20px;
+}
+.inventory,
+.inventoryEmpty {
+  position: absolute;
+  left: 40px;
+  top: 107px;
+  width: 1210px;
+  height: 220px;
+}
+.inventory {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px 3px 12px;
+  scrollbar-color: var(--color-beige) var(--color-cream);
+  scrollbar-width: thin;
+}
+.inventoryEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-cream);
+  border-radius: 10px;
+  color: var(--color-brown-muted);
+  font-size: 24px;
+}
+.tile,
+.emptyTile {
+  flex: 0 0 200px;
+  height: 200px;
+  border: 3px solid #b3a79c;
+  border-radius: 10px;
+  background: var(--color-cream);
+}
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tile img {
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.tile[aria-pressed='true'] {
+  border-color: var(--color-coral);
+  box-shadow: 0 5px 0 var(--color-coral);
+}
+.emptyTile {
+  border-style: dashed;
+}
+.priceField,
+.timeField {
+  position: absolute;
+  left: 38.5px;
+  width: 534px;
+}
+.priceField {
+  top: 338px;
+}
+.timeField {
+  top: 447px;
+}
+.priceField > label,
+.timeField > label,
+.types legend {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--color-brown-muted);
+  font-size: 20px;
+  line-height: 25px;
+}
+.priceInput {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  height: 58px;
+  border: 3px solid var(--color-brown-muted);
+  border-radius: 15px;
+}
+.priceInput input {
+  min-width: 0;
+  width: 100%;
+  font-size: 20px;
+  outline: none;
+}
+.priceInput input::placeholder {
+  color: var(--color-brown-muted);
+}
+.priceInput:focus-within {
+  border-color: var(--color-brown-dark);
+}
+.timeField select {
+  width: 100%;
+  height: 55px;
+  padding: 0 20px;
+  border: 3px solid var(--color-brown-muted);
+  border-radius: 15px;
+  font-size: 20px;
+  background: white;
+  color: var(--color-brown-dark);
+  appearance: none;
+  cursor: pointer;
+}
+.timeField select:disabled {
+  background: var(--color-disabled);
+  cursor: not-allowed;
+}
+.fieldError {
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--color-red-dark);
+  margin-top: 4px;
+}
+.types {
+  position: absolute;
+  left: 605px;
+  top: 338px;
+  border: 0;
+  padding: 0;
+}
+.typeOptions {
+  display: flex;
+  gap: 26px;
+}
+.typeCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 306px;
+  height: 164px;
+  padding: 18px;
+  border: 3px solid var(--color-brown-dark);
+  border-radius: 23px;
+  cursor: pointer;
+}
+.typeCard:has(input:checked) {
+  border-color: var(--color-coral);
+  box-shadow: 0 5px 0 var(--color-coral);
+}
+.typeCard input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.typeCard strong {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 400;
+  color: var(--color-brown-dark);
+}
+.typeCard span {
+  font-size: 20px;
+  line-height: 25px;
+  color: var(--color-brown-muted);
+}
+.error {
+  position: absolute;
+  left: 40px;
+  bottom: 25px;
+  max-width: 1200px;
+  color: var(--color-red-dark);
+  font-size: 20px;
+}
+.modal button:enabled:hover,
+.typeCard:hover {
+  filter: brightness(0.96);
+}
+.modal button:focus-visible,
+.timeField select:focus-visible,
+.typeCard:has(input:focus-visible) {
+  outline: 3px solid var(--color-brown-dark);
+  outline-offset: 5px;
+}
