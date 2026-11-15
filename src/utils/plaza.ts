@@ -18,16 +18,20 @@ export const getNicknameColor = (memberId: number) =>
 const inRect = (x: number, y: number, r: PlazaRect) =>
   x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 
-const isWalkablePoint = (x: number, y: number) =>
-  PLAZA_WALKABLE.some((r) => inRect(x, y, r)) && !PLAZA_BLOCKED.some((r) => inRect(x, y, r));
+const isWalkablePoint = (x: number, y: number) => PLAZA_WALKABLE.some((r) => inRect(x, y, r));
+
+const overlaps = (a: PlazaRect, b: PlazaRect) =>
+  a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
 
 export function canStandAt(x: number, y: number) {
   const half = PLAYER_FOOT.w / 2;
+  const foot = { x: x - half, y: y - PLAYER_FOOT.h, w: PLAYER_FOOT.w, h: PLAYER_FOOT.h };
   return (
     isWalkablePoint(x - half, y) &&
     isWalkablePoint(x + half, y) &&
     isWalkablePoint(x - half, y - PLAYER_FOOT.h) &&
-    isWalkablePoint(x + half, y - PLAYER_FOOT.h)
+    isWalkablePoint(x + half, y - PLAYER_FOOT.h) &&
+    !PLAZA_BLOCKED.some((r) => overlaps(foot, r))
   );
 }
 

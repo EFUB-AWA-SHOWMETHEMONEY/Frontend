@@ -29,9 +29,11 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
     // 스냅샷을 받기 전까지는 이벤트를 모아뒀다가 스냅샷 이후 것만 적용
     let syncing = false;
     let synced = false;
+    let needsResync = false;
+    let overflowed = false;
     let lastSyncAt = 0;
     let retryCount = 0;
-    let retryTimer: number | undefined;
+    let syncTimer: number | undefined;
     const buffered: PlazaEvent[] = [];
 
     const identify = (event: PlazaEvent) => {
@@ -44,10 +46,15 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
     };
 
     const syncSnapshot = () => {
+      window.clearTimeout(syncTimer);
+      syncTimer = undefined;
       if (syncing || abort.signal.aborted) return;
       syncing = true;
       synced = false;
+      needsResync = false;
+      overflowed = false;
       lastSyncAt = Date.now();
+      let refetchNow = false;
       fetchPlazaSnapshot(abort.signal)
         .then((snapshot) => {
           if (abort.signal.aborted) return;
@@ -55,18 +62,29 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
           store.setParticipants(snapshot.participants);
           buffered.filter((e) => e.ts > snapshot.snapshotAt).forEach(store.applyEvent);
           buffered.length = 0;
-          synced = true;
+          if (overflowed) refetchNow = true;
+          else synced = true;
         })
         .catch((error: unknown) => {
           if (abort.signal.aborted) return;
           console.error('[광장] 스냅샷 조회 실패:', error);
           const delay = Math.min(SNAPSHOT_RETRY_BASE_MS * 2 ** retryCount, SNAPSHOT_RETRY_MAX_MS);
           retryCount += 1;
-          retryTimer = window.setTimeout(syncSnapshot, delay);
+          syncTimer = window.setTimeout(syncSnapshot, delay);
         })
         .finally(() => {
           syncing = false;
+          if (refetchNow) syncSnapshot();
+          else if (needsResync) requestResync();
         });
+    };
+
+    const requestResync = () => {
+      needsResync = true;
+      if (syncing || syncTimer !== undefined || abort.signal.aborted) return;
+      const wait = lastSyncAt + RESYNC_COOLDOWN_MS - Date.now();
+      if (wait <= 0) syncSnapshot();
+      else syncTimer = window.setTimeout(syncSnapshot, wait);
     };
 
     const isUnknownMember = (event: PlazaEvent) =>
@@ -87,15 +105,16 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
         return;
       }
       // 모르는 참가자의 이벤트가 오면 목록이 어긋난 것이라 스냅샷을 다시 받음
-      if (synced && isUnknownMember(event) && Date.now() - lastSyncAt >= RESYNC_COOLDOWN_MS) {
-        syncSnapshot();
-      }
+      if (synced && isUnknownMember(event)) requestResync();
       if (synced) {
         store.applyEvent(event);
         return;
       }
       buffered.push(event);
-      if (buffered.length > BUFFER_LIMIT) buffered.shift();
+      if (buffered.length > BUFFER_LIMIT) {
+        buffered.shift();
+        overflowed = true;
+      }
     });
 
     syncSnapshot();
@@ -120,7 +139,7 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
 
     return () => {
       window.clearInterval(timer);
-      window.clearTimeout(retryTimer);
+      window.clearTimeout(syncTimer);
       abort.abort();
       store.reset();
       try {

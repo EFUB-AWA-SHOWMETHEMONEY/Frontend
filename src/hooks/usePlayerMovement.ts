@@ -89,6 +89,7 @@ export function usePlayerMovement() {
     const tick = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
+      if (isTyping(document.activeElement)) pressed.clear();
       if (!leaving) {
         let dx = 0;
         let dy = 0;

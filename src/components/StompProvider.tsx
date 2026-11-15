@@ -1,6 +1,8 @@
 'use client';
 import { Client } from '@stomp/stompjs';
 import { createContext, useEffect, useState } from 'react';
+import { useStore } from 'zustand';
+import { authStore } from '@/stores/authStore';
 import { getAccessToken } from '@/utils/token';
 import type { SocketError } from '@/types/socket';
 
@@ -22,10 +24,10 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || (IS_DEV ? 'ws://localho
 export default function StompProvider({ children }: StompProviderProps) {
   const [client, setClient] = useState<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const accessToken = useStore(authStore, (state) => state.accessToken);
 
   useEffect(() => {
     // 서버 주소와 인증 토큰이 모두 준비된 경우에만 연결
-    // TODO: 로그인 기능이 생기면 로그인 상태가 바뀔 때 다시 확인하도록 수정
     if (!SOCKET_URL || !getAccessToken()) {
       if (IS_DEV) console.warn('[STOMP] 소켓 주소나 토큰이 없어 연결하지 않아요.');
       return;
@@ -72,7 +74,7 @@ export default function StompProvider({ children }: StompProviderProps) {
       setClient(null);
       void stompClient.deactivate();
     };
-  }, []);
+  }, [accessToken]);
 
   return <StompContext.Provider value={{ client, isConnected }}>{children}</StompContext.Provider>;
 }
