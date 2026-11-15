@@ -24,7 +24,7 @@ export default function QuizSpeechBubble({ screen = 'question' }: { screen?: Qui
           <>
             <p className={styles.greeting}>
               {completed
-                ? '오늘의 퀴즈를 다 풀었어요. 내일 다시 와요!'
+                ? '오늘의 퀴즈를 다 풀었어요. 내일 다시 만나요!'
                 : '오늘의 퀴즈에 어서 와요! 맞히면 선물을 받을 수 있어요'}
             </p>
             <h1 id="quiz-question" className={styles.question}>

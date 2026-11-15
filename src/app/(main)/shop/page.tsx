@@ -120,7 +120,7 @@ export default function ShopPage() {
               <Button
                 variant="secondary"
                 onClick={() => router.push('/quiz')}
-                className="ml-auto border-b-8 bg-[#e8f4fa] text-brown-dark"
+                className="ml-auto border-b-8 bg-quiz-entry! text-brown-dark"
               >
                 오늘의 퀴즈 →
               </Button>

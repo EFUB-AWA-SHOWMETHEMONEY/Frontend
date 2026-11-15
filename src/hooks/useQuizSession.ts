@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '@/stores/quizStore';
 
 export function useQuizSession() {
+  const [session] = useState(() => Symbol('quiz mount'));
   const initialized = useRef(false);
   useEffect(() => {
     if (!initialized.current) {
-      useQuizStore.getState().enter();
+      useQuizStore.getState().enter(session);
       initialized.current = true;
     }
     const tick = () => useQuizStore.getState().tick();
@@ -21,6 +23,15 @@ export function useQuizSession() {
       window.removeEventListener('focus', tick);
       document.removeEventListener('visibilitychange', tick);
     };
-  }, []);
-  return useQuizStore();
+  }, [session]);
+  return useQuizStore(
+    useShallow((state) => ({
+      screen: state.screen,
+      remainingSeconds: state.screen === 'completed' ? state.remainingSeconds : 0,
+      submit: state.submit,
+      leave: state.leave,
+      storageError: state.storageError,
+      ready: state.ready && state.session === session,
+    })),
+  );
 }

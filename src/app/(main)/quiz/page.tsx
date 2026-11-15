@@ -12,7 +12,7 @@ import styles from '@/components/quiz/quiz.module.css';
 
 export default function QuizPage() {
   const router = useRouter();
-  const { screen, remainingSeconds, submit, leave, storageError } = useQuizSession();
+  const { screen, remainingSeconds, submit, leave, storageError, ready } = useQuizSession();
 
   return (
     <ShopViewport designWidth={1920} dimBackground>
@@ -27,21 +27,23 @@ export default function QuizPage() {
           priority
           unoptimized
         />
-        <div className={styles.quizRow}>
-          <QuizSpeechBubble screen={screen} />
-          {screen === 'question' ? (
-            <div className={styles.answers} role="group" aria-labelledby="quiz-question">
-              <QuizAnswerButton answer="O" selected={false} onSelect={submit} />
-              <QuizAnswerButton answer="X" selected={false} onSelect={submit} />
-            </div>
-          ) : (
-            <QuizStatusCard
-              correct={screen === 'correct'}
-              completed={screen === 'completed'}
-              remainingSeconds={remainingSeconds}
-            />
-          )}
-        </div>
+        {ready && (
+          <div className={styles.quizRow}>
+            <QuizSpeechBubble screen={screen} />
+            {screen === 'question' ? (
+              <div className={styles.answers} role="group" aria-labelledby="quiz-question">
+                <QuizAnswerButton answer="O" selected={false} onSelect={submit} />
+                <QuizAnswerButton answer="X" selected={false} onSelect={submit} />
+              </div>
+            ) : (
+              <QuizStatusCard
+                correct={screen === 'correct'}
+                completed={screen === 'completed'}
+                remainingSeconds={remainingSeconds}
+              />
+            )}
+          </div>
+        )}
         {storageError && (
           <p role="alert" className={styles.storageError}>
             {storageError}

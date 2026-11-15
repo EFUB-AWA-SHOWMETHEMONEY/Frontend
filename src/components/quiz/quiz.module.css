@@ -1,5 +1,4 @@
 .screen {
-  --quiz-text-sub2: #b3a79c;
   color: var(--color-brown-dark);
   /* ShopViewport already starts at header.bottom + min(48px, 4vh).
      The exported panel starts at y=173, including its outside stroke. */
@@ -17,7 +16,8 @@
 .quizRow {
   display: flex;
   width: 1820px;
-  height: 250px;
+  min-height: 250px;
+  align-items: flex-start;
   margin: 27px 50px 0;
   justify-content: space-between;
 }
@@ -26,14 +26,14 @@
   position: relative;
   width: 1134.94px;
   flex-shrink: 0;
+  padding-top: 48.01px;
+  overflow-wrap: anywhere;
 }
 
 .speechBody {
-  position: absolute;
-  top: 48.01px;
   width: 100%;
-  height: 201.99px;
-  padding: 35px 74px 0;
+  min-height: 201.99px;
+  padding: 35px 74px 27.99px;
   border-radius: 20px;
   background: white;
   outline: 3px solid var(--color-brown-dark);
@@ -58,14 +58,14 @@
   font-size: 40px;
   font-weight: 400;
   line-height: 50px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .hint {
   margin-top: 5px;
   font-size: 24px;
   line-height: 29px;
-  color: var(--quiz-text-sub2);
+  color: var(--color-brown-light);
 }
 
 .answers {
@@ -95,7 +95,7 @@
   margin-top: 11px;
   font-size: 160px;
   line-height: 200px;
-  color: #3b82e6;
+  color: var(--color-quiz-blue);
 }
 
 .symbol[data-answer='X'] {
@@ -115,7 +115,7 @@
 
 /* Result-only styles: keep the approved question geometry above unchanged. */
 .resultBody {
-  padding: 34px 45px 0;
+  padding: 34px 45px 26.99px;
 }
 
 .resultTitle {
@@ -126,21 +126,21 @@
 }
 
 .resultTitle[data-correct='true'] {
-  color: #3b82e6;
+  color: var(--color-quiz-blue);
 }
 
 .resultQuestion {
   margin-top: 6px;
   font-size: 24px;
   line-height: 29px;
-  color: var(--quiz-text-sub2);
+  color: var(--color-brown-light);
 }
 
 .explanation {
   margin-top: 21px;
   font-size: 24px;
   line-height: 29px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .statusCard {
@@ -165,8 +165,8 @@
 }
 
 .rewardCard[data-correct='true'] {
-  background: #dce9fc;
-  outline-color: #3b82e6;
+  background: var(--color-quiz-blue-light);
+  outline-color: var(--color-quiz-blue);
 }
 
 .rewardAmount {

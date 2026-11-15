@@ -157,3 +157,108 @@ test('countdown uses the next local calendar midnight including month rollover',
     '07h 21m 43s',
   );
 });
+
+test('historical answers keep rewards even when they differ from today', (t) => {
+  browser(t);
+  const { useQuizStore: store, QUIZ_STORAGE_KEY: key } = loadStore();
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      version: 2,
+      attempts: [
+        { date: '2000-01-01', answer: 'X', correct: true, rewarded: true, reward: 100 },
+        { date: '2000-01-02', answer: 'O', correct: false, rewarded: true, reward: 10 },
+        { date: '2000-01-03', answer: 'O', correct: 'yes', rewarded: true, reward: 100 },
+      ],
+    }),
+  );
+  store.getState().enter();
+  assert.equal(store.getState().totalRewards, 110);
+  assert.equal(store.getState().screen, 'question');
+});
+
+test('unchanged ticks avoid parsing and publish one update; reordered fields retain results', (t) => {
+  browser(t);
+  const { useQuizStore: store, QUIZ_STORAGE_KEY: key } = loadStore();
+  store.getState().enter();
+  store.getState().submit('O');
+  store.getState().tick();
+  const parse = t.mock.method(JSON, 'parse');
+  let updates = 0;
+  const unsubscribe = store.subscribe(() => updates++);
+  store.getState().tick();
+  assert.equal(parse.mock.callCount(), 0);
+  assert.equal(updates, 1);
+  const r = store.getState().record;
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      version: 2,
+      attempts: [
+        {
+          reward: r.reward,
+          rewarded: r.rewarded,
+          correct: r.correct,
+          answer: r.answer,
+          date: r.date,
+        },
+      ],
+    }),
+  );
+  store.getState().tick();
+  assert.equal(parse.mock.callCount(), 1);
+  assert.equal(store.getState().screen, 'correct');
+  assert.equal(updates, 2);
+  unsubscribe();
+});
+
+test('initialization gates submission and tick detects other-tab participation and clearing', (t) => {
+  browser(t);
+  const { useQuizStore: store, QUIZ_STORAGE_KEY: key, localDate } = loadStore();
+  assert.equal(store.getState().ready, false);
+  store.getState().submit('O');
+  assert.equal(localStorage.getItem(key), null);
+  store.getState().enter();
+  assert.equal(store.getState().ready, true);
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      date: localDate(new Date()),
+      answer: 'X',
+      correct: false,
+      rewarded: true,
+      reward: 10,
+    }),
+  );
+  store.getState().tick();
+  assert.equal(store.getState().screen, 'completed');
+  assert.equal(store.getState().totalRewards, 10);
+  localStorage.removeItem(key);
+  store.getState().tick();
+  assert.equal(store.getState().screen, 'question');
+  assert.equal(store.getState().totalRewards, 0);
+});
+
+test('each page mount must initialize its own session before showing persisted state', (t) => {
+  browser(t);
+  const { useQuizStore: store, QUIZ_STORAGE_KEY: key, localDate } = loadStore();
+  const first = Symbol('first mount');
+  const second = Symbol('second mount');
+  store.getState().enter(first);
+  assert.equal(store.getState().session, first);
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      date: localDate(new Date()),
+      answer: 'O',
+      correct: true,
+      rewarded: true,
+      reward: 100,
+    }),
+  );
+  assert.notEqual(store.getState().session, second);
+  store.getState().enter(second);
+  assert.equal(store.getState().session, second);
+  assert.equal(store.getState().screen, 'completed');
+  assert.equal(store.getState().totalRewards, 100);
+});

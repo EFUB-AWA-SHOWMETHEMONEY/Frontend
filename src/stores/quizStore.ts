@@ -30,10 +30,19 @@ export function formatCountdown(seconds: number) {
   return `${pad(Math.floor(seconds / 3600))}h ${pad(Math.floor((seconds % 3600) / 60))}m ${pad(seconds % 60)}s`;
 }
 
+let cachedRaw: string | null | undefined;
+let cachedAttempts: QuizParticipation[] = [];
+
+/** Validate historical records independently of today's answer and cache unchanged data. */
 function readLedger(): QuizParticipation[] {
   try {
     const raw = localStorage.getItem(QUIZ_STORAGE_KEY);
-    if (!raw) return [];
+    if (raw === cachedRaw) return cachedAttempts;
+    if (!raw) {
+      cachedRaw = raw;
+      cachedAttempts = [];
+      return cachedAttempts;
+    }
     const saved = JSON.parse(raw);
     // Accept the previous single-attempt demo record without losing participation.
     const records: unknown[] = saved?.version === 2 ? saved.attempts : [saved];
@@ -46,7 +55,7 @@ function readLedger(): QuizParticipation[] {
         typeof record.date !== 'string' ||
         !/^\d{4}-\d{2}-\d{2}$/.test(record.date) ||
         (record.answer !== 'O' && record.answer !== 'X') ||
-        record.correct !== (record.answer === dailyQuiz.answer) ||
+        typeof record.correct !== 'boolean' ||
         record.rewarded !== true
       )
         continue;
@@ -56,7 +65,9 @@ function readLedger(): QuizParticipation[] {
       // One saved reward per local date, even if persisted entries are duplicated.
       if (!attempts.has(record.date)) attempts.set(record.date, { ...record, reward });
     }
-    return [...attempts.values()];
+    cachedRaw = raw;
+    cachedAttempts = [...attempts.values()];
+    return cachedAttempts;
   } catch {
     return [];
   }
@@ -86,8 +97,9 @@ interface QuizState {
   date: string;
   remainingSeconds: number;
   ready: boolean;
+  session: symbol | null;
   storageError: string | null;
-  enter: () => void;
+  enter: (session?: symbol) => void;
   tick: () => void;
   submit: (answer: QuizAnswer) => void;
   leave: () => void;
@@ -102,8 +114,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   date: '',
   remainingSeconds: 0,
   ready: false,
+  session: null,
   storageError: null,
-  enter: () => {
+  enter: (session = Symbol('quiz entry')) => {
     const now = new Date();
     const date = localDate(now);
     const { record, totalRewards } = participation(readLedger(), date);
@@ -123,6 +136,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       record,
       totalRewards,
       ready: true,
+      session,
       storageError: null,
       remainingSeconds: secondsUntilMidnight(now),
       screen: record
@@ -139,14 +153,22 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const date = localDate(now);
     const state = get();
     const { record, totalRewards } = participation(readLedger(), date);
-    if (date !== state.date) {
-      rememberResult(null);
-      set({ date, record, screen: record ? 'completed' : 'question', storageError: null });
-    } else if (JSON.stringify(record) !== JSON.stringify(state.record)) {
-      // Synchronize other tabs; never add reward amounts to the member ledger.
-      set({ record, screen: record ? 'completed' : 'question' });
-    }
-    set({ totalRewards, remainingSeconds: secondsUntilMidnight(now) });
+    const dateChanged = date !== state.date;
+    const recordChanged =
+      record?.date !== state.record?.date ||
+      record?.answer !== state.record?.answer ||
+      record?.correct !== state.record?.correct ||
+      record?.rewarded !== state.record?.rewarded ||
+      record?.reward !== state.record?.reward;
+    if (dateChanged) rememberResult(null);
+    set({
+      date,
+      record: recordChanged ? record : state.record,
+      screen: dateChanged || recordChanged ? (record ? 'completed' : 'question') : state.screen,
+      storageError: dateChanged ? null : state.storageError,
+      totalRewards,
+      remainingSeconds: secondsUntilMidnight(now),
+    });
   },
   submit: (answer) => {
     const state = get();
