@@ -54,7 +54,7 @@ export default function PlazaView() {
       : null;
 
   return (
-    <div ref={viewportRef} className="fixed inset-0 z-0 overflow-hidden">
+    <div ref={viewportRef} className="fixed inset-0 z-0 overflow-hidden bg-plaza-grass">
       <div
         className="absolute top-1/2 left-1/2 -translate-1/2 font-jua [image-rendering:pixelated]"
         style={

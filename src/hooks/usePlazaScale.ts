@@ -16,7 +16,7 @@ export function usePlazaScale() {
     root.style.overflow = 'hidden';
     root.style.scrollbarGutter = 'auto';
     const fit = () => {
-      setScale(Math.max(viewport.clientWidth / PLAZA_WIDTH, viewport.clientHeight / PLAZA_HEIGHT));
+      setScale(Math.min(viewport.clientWidth / PLAZA_WIDTH, viewport.clientHeight / PLAZA_HEIGHT));
     };
     const observer = new ResizeObserver(fit);
     observer.observe(viewport);
