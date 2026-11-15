@@ -1,5 +1,6 @@
 import {
   ENTRANCE_RADIUS,
+  NICKNAME_COLORS,
   PLAYER_FOOT,
   PLAZA_BLOCKED,
   PLAZA_ENTRANCES,
@@ -10,6 +11,9 @@ import {
 } from '@/constants/plaza';
 
 export const px = (value: number) => `calc(${value}px * var(--s))`;
+
+export const getNicknameColor = (memberId: number) =>
+  NICKNAME_COLORS[memberId % NICKNAME_COLORS.length];
 
 const inRect = (x: number, y: number, r: PlazaRect) =>
   x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;

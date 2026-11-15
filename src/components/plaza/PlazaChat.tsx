@@ -7,8 +7,7 @@ import { CHAT_MAX_LENGTH } from '@/constants/plaza';
 import useStomp from '@/hooks/useStomp';
 import { plazaStore } from '@/stores/plazaStore';
 import { STOMP_DEST, type ChatPayload } from '@/types/socket';
-
-const NICKNAME_COLORS = ['text-badge-hat', 'text-coral', 'text-badge-face', 'text-yellow'];
+import { getNicknameColor } from '@/utils/plaza';
 
 export default function PlazaChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,7 +56,7 @@ export default function PlazaChat() {
           {messages.map((message) => (
             <li key={`${message.memberId}-${message.ts}`} className="flex gap-3">
               <span
-                className={`shrink-0 ${NICKNAME_COLORS[message.memberId % NICKNAME_COLORS.length]}`}
+                className={`shrink-0 ${getNicknameColor(message.memberId)}`}
               >
                 {message.nickname}
               </span>

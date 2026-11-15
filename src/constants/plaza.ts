@@ -59,4 +59,5 @@ export const ENTRANCE_RADIUS = 7;
 export const PLAZA_SPAWN_ID = 'plaza_in';
 export const CHAT_MAX_LENGTH = 100;
 export const CHAT_HISTORY_LIMIT = 50;
+export const NICKNAME_COLORS = ['text-badge-hat', 'text-coral', 'text-badge-face', 'text-yellow'];
 export const PLAZA_RETURN_KEY = 'moamoa-plaza-return';

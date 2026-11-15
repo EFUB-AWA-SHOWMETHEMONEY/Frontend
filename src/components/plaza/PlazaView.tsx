@@ -18,7 +18,7 @@ import { usePlazaSocket } from '@/hooks/usePlazaSocket';
 import { memberStore } from '@/stores/memberStore';
 import { plazaStore } from '@/stores/plazaStore';
 import { PLAZA_HEIGHT, PLAZA_WIDTH } from '@/types/socket';
-import { px } from '@/utils/plaza';
+import { getNicknameColor, px } from '@/utils/plaza';
 
 const WELCOME_DURATION_MS = 3000;
 
@@ -120,7 +120,11 @@ export default function PlazaView() {
             top: 'calc(var(--y) * var(--s) * 1px)',
           }}
         >
-          <CharacterBody nickname={nickname} isMe />
+          <CharacterBody
+            nickname={nickname}
+            isMe
+            nicknameColor={myMemberId === null ? undefined : getNicknameColor(myMemberId)}
+          />
         </div>
 
         {others.map((participant) => (
