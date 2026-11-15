@@ -8,6 +8,10 @@ import { STOMP_DEST, type MovePayload, type PlazaEvent } from '@/types/socket';
 
 const SEND_INTERVAL_MS = 110;
 const RESEND_UNTIL_IDENTIFIED_MS = 500;
+const SNAPSHOT_RETRY_BASE_MS = 1000;
+const SNAPSHOT_RETRY_MAX_MS = 10000;
+const RESYNC_COOLDOWN_MS = 3000;
+const BUFFER_LIMIT = 1000;
 
 export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>) {
   const { client, isConnected } = useStomp();
@@ -22,7 +26,12 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
     let myMemberId: number | null = null;
     // 서버가 내 memberId를 알려주지 않아서, 내가 보낸 이동이 돌아올 때 알아냄
     const sentMoves = new Map<number, { x: number; y: number }>();
-    let snapshotAt: number | null = null;
+    // 스냅샷을 받기 전까지는 이벤트를 모아뒀다가 스냅샷 이후 것만 적용
+    let syncing = false;
+    let synced = false;
+    let lastSyncAt = 0;
+    let retryCount = 0;
+    let retryTimer: number | undefined;
     const buffered: PlazaEvent[] = [];
 
     const identify = (event: PlazaEvent) => {
@@ -34,6 +43,37 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
       store.setMyMemberId(event.memberId);
     };
 
+    const syncSnapshot = () => {
+      if (syncing || abort.signal.aborted) return;
+      syncing = true;
+      synced = false;
+      lastSyncAt = Date.now();
+      fetchPlazaSnapshot(abort.signal)
+        .then((snapshot) => {
+          if (abort.signal.aborted) return;
+          retryCount = 0;
+          store.setParticipants(snapshot.participants);
+          buffered.filter((e) => e.ts > snapshot.snapshotAt).forEach(store.applyEvent);
+          buffered.length = 0;
+          synced = true;
+        })
+        .catch((error: unknown) => {
+          if (abort.signal.aborted) return;
+          console.error('[광장] 스냅샷 조회 실패:', error);
+          const delay = Math.min(SNAPSHOT_RETRY_BASE_MS * 2 ** retryCount, SNAPSHOT_RETRY_MAX_MS);
+          retryCount += 1;
+          retryTimer = window.setTimeout(syncSnapshot, delay);
+        })
+        .finally(() => {
+          syncing = false;
+        });
+    };
+
+    const isUnknownMember = (event: PlazaEvent) =>
+      (event.type === 'position_update' || event.type === 'equipment_update') &&
+      event.memberId !== myMemberId &&
+      !(event.memberId in plazaStore.getState().participants);
+
     const subscription = client.subscribe(STOMP_DEST.PLAZA_TOPIC, (message) => {
       let event: PlazaEvent;
       try {
@@ -42,25 +82,23 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
         return;
       }
       identify(event);
-      if (snapshotAt === null && event.type !== 'chat_message') buffered.push(event);
-      else store.applyEvent(event);
+      if (event.type === 'chat_message') {
+        store.applyEvent(event);
+        return;
+      }
+      // 모르는 참가자의 이벤트가 오면 목록이 어긋난 것이라 스냅샷을 다시 받음
+      if (synced && isUnknownMember(event) && Date.now() - lastSyncAt >= RESYNC_COOLDOWN_MS) {
+        syncSnapshot();
+      }
+      if (synced) {
+        store.applyEvent(event);
+        return;
+      }
+      buffered.push(event);
+      if (buffered.length > BUFFER_LIMIT) buffered.shift();
     });
 
-    fetchPlazaSnapshot(abort.signal)
-      .then((snapshot) => {
-        store.setParticipants(snapshot.participants);
-        snapshotAt = snapshot.snapshotAt;
-      })
-      .catch((error: unknown) => {
-        if (abort.signal.aborted) return;
-        console.error('[광장] 스냅샷 조회 실패:', error);
-        snapshotAt = 0;
-      })
-      .finally(() => {
-        if (abort.signal.aborted) return;
-        buffered.filter((e) => e.ts > (snapshotAt ?? 0)).forEach(store.applyEvent);
-        buffered.length = 0;
-      });
+    syncSnapshot();
 
     const sendPosition = () => {
       const x = Math.round(positionRef.current.x);
@@ -82,6 +120,7 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
 
     return () => {
       window.clearInterval(timer);
+      window.clearTimeout(retryTimer);
       abort.abort();
       store.reset();
       try {
