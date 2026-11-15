@@ -33,6 +33,7 @@ export default function StompProvider({ children }: StompProviderProps) {
       return;
     }
 
+    let active = true;
     const stompClient = new Client({
       brokerURL: SOCKET_URL,
       reconnectDelay: 3000,
@@ -42,10 +43,13 @@ export default function StompProvider({ children }: StompProviderProps) {
       },
 
       onConnect: () => {
+        if (!active) return;
         setClient(stompClient);
         setIsConnected(true);
       },
-      onWebSocketClose: () => setIsConnected(false),
+      onWebSocketClose: () => {
+        if (active) setIsConnected(false);
+      },
       onStompError: (frame) => {
         let error: SocketError | null = null;
         try {
@@ -70,6 +74,7 @@ export default function StompProvider({ children }: StompProviderProps) {
     stompClient.activate();
 
     return () => {
+      active = false;
       setIsConnected(false);
       setClient(null);
       void stompClient.deactivate();
