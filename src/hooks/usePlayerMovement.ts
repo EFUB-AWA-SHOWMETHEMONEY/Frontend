@@ -20,7 +20,7 @@ const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
-// StrictMode에서 effect가 두 번 돌아서, 읽을 때 지우지 않고 첫 이동 때 지운다
+// StrictMode에서 effect가 두 번 돌아서, 읽을 때 지우지 않고 첫 이동 때 지움
 const readReturnId = () => {
   try {
     return sessionStorage.getItem(PLAZA_RETURN_KEY);

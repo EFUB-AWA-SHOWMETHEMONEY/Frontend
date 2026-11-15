@@ -20,7 +20,7 @@ export function usePlazaSocket(positionRef: RefObject<{ x: number; y: number }>)
     let lastSent: { x: number; y: number } | null = null;
     let lastSentAt = 0;
     let myMemberId: number | null = null;
-    // 서버가 내 memberId를 알려주지 않아서, 내가 보낸 이동이 돌아올 때 알아낸다
+    // 서버가 내 memberId를 알려주지 않아서, 내가 보낸 이동이 돌아올 때 알아냄
     const sentMoves = new Map<number, { x: number; y: number }>();
     let snapshotAt: number | null = null;
     const buffered: PlazaEvent[] = [];
