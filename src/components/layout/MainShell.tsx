@@ -25,7 +25,7 @@ export default function MainShell({ children }: { children: ReactNode }) {
       balance={pathname === '/quiz' ? dailyQuiz.initialBalance + quizRewards : balance}
     />
   );
-  if (pathname === '/auction') {
+  if (pathname === '/auction' || pathname.startsWith('/auction/')) {
     return (
       <AuctionViewport>
         {header}

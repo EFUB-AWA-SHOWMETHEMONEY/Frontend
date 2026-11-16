@@ -18,7 +18,10 @@ const {
   parseAuctionPrice,
   auctionInventory,
   createMockAuction,
+  millisecondsUntilAuctionBoundary,
+  auctionEntryLabel,
 } = require('../src/utils/auction.ts');
+const { viewportScale } = require('../src/utils/viewport.ts');
 const now = new Date('2026-11-14T14:00:00+09:00');
 const member = { hydrated: true, inventory: [{ instanceId: 'owned-1', productId: 'ribbon' }] };
 const input = {
@@ -117,4 +120,31 @@ test('creation preserves inventory, uses catalog identity, and creates distinct 
   assert.equal(second.auction.type, 'PRIVATE');
   assert.notEqual(first.auction.id, second.auction.id);
   assert.deepEqual(member, before);
+});
+
+test('refresh scheduling reaches the next time boundary and Seoul midnight exactly', () => {
+  assert.equal(millisecondsUntilAuctionBoundary(new Date('2026-11-14T14:09:59.500+09:00')), 500);
+  assert.equal(millisecondsUntilAuctionBoundary(new Date('2026-11-14T14:10:00+09:00')), 600000);
+  assert.equal(millisecondsUntilAuctionBoundary(new Date('2026-11-14T23:59:59+09:00')), 1000);
+});
+
+test('entry labels explain closed states without overriding admission permission', () => {
+  const auction = {
+    canEnter: false,
+    status: 'SCHEDULED',
+    participantCount: 20,
+    participantCapacity: 20,
+  };
+  assert.equal(auctionEntryLabel(auction), '정원 마감');
+  assert.equal(auctionEntryLabel({ ...auction, status: 'IN_PROGRESS' }), '진행 중');
+  assert.equal(auctionEntryLabel({ ...auction, status: 'ENDED' }), '경매 종료');
+  assert.equal(auctionEntryLabel({ ...auction, participantCount: 1 }), '입장 마감');
+  assert.equal(auctionEntryLabel({ ...auction, canEnter: true }), '입장하기');
+});
+
+test('shared viewport scale fits either dimension and never upscales', () => {
+  assert.equal(viewportScale(1280, 720, 1920, 1080), 2 / 3);
+  assert.equal(viewportScale(1920, 540, 1920, 1080), 0.5);
+  assert.equal(viewportScale(3840, 2160, 1920, 1080), 1);
+  assert.equal(viewportScale(0, 0, 1920, 1080), 0);
 });

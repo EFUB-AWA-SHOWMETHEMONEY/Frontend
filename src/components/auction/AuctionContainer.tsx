@@ -14,22 +14,20 @@ export default function AuctionContainer() {
   const [page, setPage] = useState(1);
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [notice, setNotice] = useState<{ message: string; sequence: number } | null>(null);
-  const submitted = useRef(false);
+  const nextAuctionId = useRef(1);
 
   function announce(message: string) {
     setNotice((previous) => ({ message, sequence: (previous?.sequence ?? 0) + 1 }));
   }
 
   function create(input: CreateAuctionInput): string | null {
-    if (submitted.current) return '이미 생성 중입니다.';
     const result = createMockAuction(
       input,
       memberStore.getState(),
       new Date(),
-      () => `auction-${crypto.randomUUID()}`,
+      () => `auction-created-${nextAuctionId.current++}`,
     );
     if (!result.ok) return result.error;
-    submitted.current = true;
     setAuctions((previous) => [result.auction, ...previous]);
     setFilter('ALL');
     setPage(1);
@@ -52,7 +50,6 @@ export default function AuctionContainer() {
         }}
         onPageChange={setPage}
         onCreate={() => {
-          submitted.current = false;
           setCreateOpen(true);
         }}
         onEnter={(id) => {

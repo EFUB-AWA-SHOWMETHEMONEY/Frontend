@@ -10,10 +10,12 @@ import {
   auctionTimeOptions,
   parseAuctionPrice,
   validAuctionTime,
+  millisecondsUntilAuctionBoundary,
 } from '@/utils/auction';
+import { AUCTION_DESIGN_WIDTH, AUCTION_DESIGN_HEIGHT } from '@/constants/auction';
+import { viewportScale } from '@/utils/viewport';
 import type { AuctionType, CreateAuctionInput } from '@/types/auction';
 import AuctionInventoryPicker from './AuctionInventoryPicker';
-import styles from './auction-create.module.css';
 
 export default function AuctionCreateModal({
   onClose,
@@ -32,6 +34,7 @@ export default function AuctionCreateModal({
     () => auctionTimeOptions(auctionDate(openedAt), openedAt)[0] ?? '',
   );
   const [digits, setDigits] = useState('');
+  const [editingPrice, setEditingPrice] = useState(false);
   const [priceError, setPriceError] = useState('');
   const [type, setType] = useState<AuctionType>('PUBLIC');
   const [error, setError] = useState('');
@@ -51,20 +54,34 @@ export default function AuctionCreateModal({
     hydrated && selectedValid && price !== null && !priceError && timeValid && !submitting;
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
+    let timer: number;
+    const refresh = () => {
+      window.clearTimeout(timer);
+      const current = new Date();
+      setNow(current);
+      timer = window.setTimeout(refresh, millisecondsUntilAuctionBoundary(current));
+    };
+    timer = window.setTimeout(refresh, millisecondsUntilAuctionBoundary(new Date()));
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, []);
 
   // A modal dialog lives in the top layer. Compute its coordinates independently
   // from AuctionViewport's transformed canvas, using exactly the same scale policy.
   useLayoutEffect(() => {
     const fit = () => {
-      const scale = Math.min(
-        1,
-        document.documentElement.clientWidth / 1920,
-        window.innerHeight / 1080,
+      const scale = viewportScale(
+        document.documentElement.clientWidth,
+        window.innerHeight,
+        AUCTION_DESIGN_WIDTH,
+        AUCTION_DESIGN_HEIGHT,
       );
-      wrapper.current?.style.setProperty('--auction-scale', String(scale));
+      wrapper.current?.style.setProperty('--modal-scale', String(scale));
     };
     fit();
     window.addEventListener('resize', fit);
@@ -95,19 +112,22 @@ export default function AuctionCreateModal({
   }
 
   return (
-    <div ref={wrapper} className={styles.scope}>
+    <div ref={wrapper} className="[--modal-scale:1]">
       <Modal
         isOpen
+        size="wide"
         onClose={onClose}
         title="내 아이템"
-        className={styles.modal}
+        className="[&_button:enabled:hover]:brightness-[0.96] [&_button:focus-visible]:outline-3 [&_button:focus-visible]:outline-offset-[5px] [&_button:focus-visible]:outline-brown-dark"
         actions={
           <Button type="submit" form={formId} disabled={!canSubmit}>
             경매 열기
           </Button>
         }
       >
-        <p className={styles.subtitle}>경매에 올릴 아이템을 선택해주세요</p>
+        <p className="absolute top-[47px] left-40 text-xl text-brown-muted">
+          경매에 올릴 아이템을 선택해주세요
+        </p>
         <form id={formId} onSubmit={submit} aria-describedby={error ? errorId : undefined}>
           <AuctionInventoryPicker
             items={items}
@@ -118,9 +138,9 @@ export default function AuctionCreateModal({
               setError('');
             }}
           />
-          <div className={styles.priceField}>
+          <div className="absolute top-[338px] left-[38.5px] w-[534px] [&>label]:mb-2.5 [&>label]:block [&>label]:text-xl [&>label]:leading-[25px] [&>label]:text-brown-muted">
             <label htmlFor={`${formId}-price`}>시작가</label>
-            <div className={styles.priceInput}>
+            <div className="flex h-[58px] items-center gap-3 rounded-[15px] border-[3px] border-brown-muted px-5 focus-within:border-brown-dark [&_input]:w-full [&_input]:min-w-0 [&_input]:text-xl [&_input]:outline-none [&_input::placeholder]:text-brown-muted">
               <Image src="/assets/ui/coin.svg" alt="" width={28} height={28} />
               <input
                 id={`${formId}-price`}
@@ -128,31 +148,36 @@ export default function AuctionCreateModal({
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder="예) 1,500"
-                value={digits ? Number(digits).toLocaleString('ko-KR') : ''}
+                value={editingPrice ? digits : digits ? Number(digits).toLocaleString('ko-KR') : ''}
+                onFocus={() => setEditingPrice(true)}
+                onBlur={() => {
+                  setEditingPrice(false);
+                  setDigits((value) => value.replace(/^0+(?=\d)/, ''));
+                }}
                 aria-invalid={!!priceError || (digits !== '' && price === null)}
                 aria-describedby={priceErrorId}
                 onChange={(event) => {
                   const raw = event.target.value.replaceAll(',', '');
                   if (!/^\d*$/.test(raw)) {
-                    setPriceError('숫자만 입력해 주세요.');
+                    setPriceError('');
                     return;
                   }
                   if (raw && !Number.isSafeInteger(Number(raw))) {
                     setPriceError('JavaScript 안전 정수 범위를 초과할 수 없습니다.');
                     return;
                   }
-                  setDigits(raw.replace(/^0+(?=\d)/, ''));
+                  setDigits(raw);
                   setPriceError('');
                   setError('');
                 }}
               />
             </div>
-            <p id={priceErrorId} className={styles.fieldError} role="status">
+            <p id={priceErrorId} className="mt-1 text-base leading-5 text-red-dark" role="status">
               {priceError ||
                 (digits !== '' && price === null ? '0보다 큰 시작가를 입력해 주세요.' : '')}
             </p>
           </div>
-          <div className={styles.timeField}>
+          <div className="absolute top-[447px] left-[38.5px] w-[534px] [&_select]:h-[55px] [&_select]:w-full [&_select]:cursor-pointer [&_select]:appearance-none [&_select]:rounded-[15px] [&_select]:border-[3px] [&_select]:border-brown-muted [&_select]:bg-white [&_select]:px-5 [&_select]:text-xl [&_select]:text-brown-dark [&_select:disabled]:cursor-not-allowed [&_select:disabled]:bg-disabled [&_select:focus-visible]:outline-3 [&_select:focus-visible]:outline-offset-[5px] [&_select:focus-visible]:outline-brown-dark [&>label]:mb-2.5 [&>label]:block [&>label]:text-xl [&>label]:leading-[25px] [&>label]:text-brown-muted">
             <label htmlFor={`${formId}-time`}>시작 시간</label>
             <select
               id={`${formId}-time`}
@@ -176,7 +201,7 @@ export default function AuctionCreateModal({
                 </option>
               ))}
             </select>
-            <p id={timeHintId} className={styles.fieldError} role="status">
+            <p id={timeHintId} className="mt-1 text-base leading-5 text-red-dark" role="status">
               {options.length === 0
                 ? '오늘 선택 가능한 미래 시간이 없습니다. 다음 날 다시 열어 주세요.'
                 : !timeValid
@@ -184,24 +209,28 @@ export default function AuctionCreateModal({
                   : ''}
             </p>
           </div>
-          <fieldset className={styles.types}>
+          <fieldset className="absolute top-[338px] left-[605px] border-0 p-0 [&_legend]:mb-2.5 [&_legend]:block [&_legend]:text-xl [&_legend]:leading-[25px] [&_legend]:text-brown-muted">
             <legend>경매 방식</legend>
-            <div className={styles.typeOptions}>
+            <div className="flex gap-[26px]">
               {(
                 [
                   {
                     value: 'PUBLIC',
                     label: 'Public',
-                    description: '입찰가 공개, 10초 동안 더 높은 입찰이 없으면 낙찰',
+                    description:
+                      '입찰가가 모두에게 보이고, 10초 동안 더 높은 입찰이 없으면 낙찰돼요.',
                   },
                   {
                     value: 'PRIVATE',
                     label: 'Private',
-                    description: '각자 한 번 입찰, 마감 후 최고가 낙찰',
+                    description: '입찰가를 각자 한 번만 적고, 마감 후 가장 높은 사람이 낙찰돼요.',
                   },
                 ] as const
               ).map((option) => (
-                <label key={option.value} className={styles.typeCard}>
+                <label
+                  key={option.value}
+                  className="relative flex h-[164px] w-[306px] cursor-pointer flex-col gap-2 rounded-[23px] border-[3px] border-brown-dark p-[18px] hover:brightness-[0.96] has-[:checked]:border-coral has-[:checked]:shadow-[0_5px_0_var(--color-coral)] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-[5px] has-[:focus-visible]:outline-brown-dark [&_input]:absolute [&_input]:h-px [&_input]:w-px [&_input]:opacity-0 [&_span]:text-xl [&_span]:leading-[25px] [&_span]:text-brown-muted [&_strong]:text-[32px] [&_strong]:leading-10 [&_strong]:font-normal [&_strong]:text-brown-dark"
+                >
                   <input
                     type="radio"
                     name={`${formId}-type`}
@@ -215,7 +244,11 @@ export default function AuctionCreateModal({
               ))}
             </div>
           </fieldset>
-          <p id={errorId} className={styles.error} role="alert">
+          <p
+            id={errorId}
+            className="absolute bottom-[25px] left-10 max-w-[1200px] text-xl text-red-dark"
+            role="alert"
+          >
             {error}
           </p>
         </form>

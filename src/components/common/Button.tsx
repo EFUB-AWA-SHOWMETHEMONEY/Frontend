@@ -17,6 +17,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: keyof typeof VARIANTS;
   size?: keyof typeof SIZES;
 }
+/** Shared appearance for a native button or a navigation link. */
+export function buttonStyles({
+  variant = 'primary',
+  size = 'default',
+}: Pick<ButtonProps, 'variant' | 'size'> = {}) {
+  return `inline-flex max-w-full shrink-0 items-center justify-center rounded-[20px] border-[3px] border-b-8 border-brown-dark p-2.5 text-center font-jua leading-none focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brown-dark enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-disabled disabled:text-brown-muted ${VARIANTS[variant]} ${SIZES[size]}`;
+}
 export default function Button({
   variant = 'primary',
   size = 'default',
@@ -30,7 +37,7 @@ export default function Button({
     <button
       type={type}
       disabled={disabled}
-      className={`inline-flex max-w-full shrink-0 items-center justify-center rounded-[20px] border-[3px] border-b-8 border-brown-dark p-2.5 text-center font-jua leading-none focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-brown-dark enabled:cursor-pointer disabled:cursor-not-allowed disabled:bg-disabled disabled:text-brown-muted ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`${buttonStyles({ variant, size })} ${className}`}
       {...props}
     >
       {children}

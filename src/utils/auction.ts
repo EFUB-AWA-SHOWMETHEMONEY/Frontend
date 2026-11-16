@@ -15,6 +15,20 @@ export function auctionTimeOptions(date: string, now: Date): string[] {
   }).filter((time) => Date.parse(`${date}T${time}:00+09:00`) > now.getTime());
 }
 
+/** Time options only change at ten-minute boundaries, including Seoul midnight. */
+export function millisecondsUntilAuctionBoundary(now: Date): number {
+  const interval = 10 * 60 * 1000;
+  return interval - (now.getTime() % interval);
+}
+
+export function auctionEntryLabel(auction: AuctionSummary): string {
+  if (auction.canEnter) return '입장하기';
+  if (auction.status === 'ENDED') return '경매 종료';
+  if (auction.status === 'IN_PROGRESS') return '진행 중';
+  if (auction.participantCount >= auction.participantCapacity) return '정원 마감';
+  return '입장 마감';
+}
+
 export function validAuctionTime(value: string, now: Date): boolean {
   if (!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]0:00\+09:00$/.test(value)) return false;
   return value.slice(0, 10) === auctionDate(now) && Date.parse(value) > now.getTime();

@@ -1,6 +1,8 @@
 import type { AuctionSummary } from '@/types/auction';
 
 export const AUCTION_PAGE_SIZE = 3;
+export const AUCTION_DESIGN_WIDTH = 1920;
+export const AUCTION_DESIGN_HEIGHT = 1080;
 
 // Static demo sessions: admission is determined by canEnter, not the device clock.
 // The reference's third card uses a ring image with a sunglasses label; use the ring identity.
