@@ -10,6 +10,8 @@ interface ModalProps {
   children: ReactNode;
   actions?: ReactNode;
   className?: string;
+  /** Wide fixed-canvas dialog; its parent supplies --modal-scale. */
+  size?: 'default' | 'wide';
 }
 export default function Modal({
   isOpen,
@@ -19,6 +21,7 @@ export default function Modal({
   children,
   actions,
   className = '',
+  size = 'default',
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -60,13 +63,18 @@ export default function Modal({
         event.preventDefault();
         onClose();
       }}
-      className={`moa-modal fixed inset-0 m-auto box-border h-[652px] max-h-[calc(100dvh-32px)] w-[800px] max-w-[calc(100vw-32px)] flex-col gap-8 overflow-y-auto rounded-[20px] border-[3px] border-brown-dark bg-white p-10 font-jua text-black open:flex max-sm:p-5 ${className}`}
+      className={`moa-modal fixed box-border flex-col gap-8 rounded-[20px] border-[3px] border-brown-dark bg-white p-10 font-jua text-black open:flex ${size === 'wide' ? 'inset-auto top-[calc(231.5px*var(--modal-scale,1))] left-[calc(50vw-643px*var(--modal-scale,1))] m-0 h-[673px] max-h-none w-[1286px] max-w-none origin-top-left scale-[var(--modal-scale,1)] overflow-visible' : 'inset-0 m-auto h-[652px] max-h-[calc(100dvh-32px)] w-[800px] max-w-[calc(100vw-32px)] overflow-y-auto max-sm:p-5'} ${className}`}
     >
-      <h2 id={titleId} className="shrink-0 text-[28px] leading-[35px]">
+      <h2
+        id={titleId}
+        className={`shrink-0 text-[28px] leading-[35px] ${size === 'wide' ? 'absolute top-10 left-10' : ''}`}
+      >
         {title}
       </h2>
       <div className="min-w-0 flex-1">{(isOpen || keepMounted) && children}</div>
-      <div className="flex shrink-0 flex-wrap justify-end gap-5">
+      <div
+        className={`flex shrink-0 flex-wrap justify-end gap-5 ${size === 'wide' ? 'absolute right-10 bottom-10' : ''}`}
+      >
         <Button variant="secondary" size="close" onClick={onClose}>
           닫기
         </Button>

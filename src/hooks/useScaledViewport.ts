@@ -1,6 +1,7 @@
 'use client';
 
 import { useLayoutEffect, useRef } from 'react';
+import { viewportScale } from '@/utils/viewport';
 
 interface ScaleOptions {
   width?: number;
@@ -35,13 +36,11 @@ export function useScaledViewport({
       if (header) {
         viewport.style.top = `${header.getBoundingClientRect().bottom + Math.min(48, window.innerHeight * 0.04)}px`;
       }
-      const scale = Math.max(
-        0,
-        Math.min(
-          1,
-          viewport.clientWidth / (width ?? content.offsetWidth),
-          viewport.clientHeight / (height ?? content.offsetHeight),
-        ),
+      const scale = viewportScale(
+        viewport.clientWidth,
+        viewport.clientHeight,
+        width ?? content.offsetWidth,
+        height ?? content.offsetHeight,
       );
       content.style.transform = `translateX(-50%) scale(${scale})`;
       content.style.visibility = 'visible';
