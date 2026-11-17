@@ -30,9 +30,11 @@ export default function PlazaView() {
   const { viewportRef, scale } = usePlazaScale();
   const { playerRef, positionRef, pendingEntranceId } = usePlayerMovement();
   usePlazaSocket(positionRef);
-  const nickname = useStore(memberStore, (state) => state.nickname);
   const participants = useStore(plazaStore, (state) => state.participants);
   const myMemberId = useStore(plazaStore, (state) => state.myMemberId);
+  const fallbackNickname = useStore(memberStore, (state) => state.nickname);
+  const nickname =
+    (myMemberId === null ? undefined : participants[myMemberId]?.nickname) ?? fallbackNickname;
   const others = useMemo(
     () =>
       myMemberId === null
