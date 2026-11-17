@@ -1,6 +1,6 @@
 import type { AuctionSummary } from '@/types/auction';
 
-export const AUCTION_PAGE_SIZE = 3;
+export const AUCTION_PAGE_SIZE = 5;
 export const AUCTION_DESIGN_WIDTH = 1920;
 export const AUCTION_DESIGN_HEIGHT = 1080;
 

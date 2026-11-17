@@ -1,34 +1,32 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { auctionFixtures } from '@/constants/auction';
+import { useState } from 'react';
+import { useAuctionLifecycle } from '@/hooks/useAuctionLifecycle';
+import { useRouter } from 'next/navigation';
+import { useStore } from 'zustand';
+import { auctionStore } from '@/stores/auctionStore';
 import { memberStore } from '@/stores/memberStore';
-import { createMockAuction } from '@/utils/auction';
-import type { AuctionSummary, AuctionType, CreateAuctionInput } from '@/types/auction';
+import { auctionEntryPath } from '@/utils/auctionRoom';
+import type { AuctionType, CreateAuctionInput } from '@/types/auction';
 import AuctionList from './AuctionList';
 import AuctionCreateModal from './AuctionCreateModal';
 
 export default function AuctionContainer() {
-  const [auctions, setAuctions] = useState<readonly AuctionSummary[]>(auctionFixtures);
+  useAuctionLifecycle();
+  const router = useRouter();
+  const auctions = useStore(auctionStore, (state) => state.auctions);
   const [filter, setFilter] = useState<AuctionType | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [notice, setNotice] = useState<{ message: string; sequence: number } | null>(null);
-  const nextAuctionId = useRef(1);
 
   function announce(message: string) {
     setNotice((previous) => ({ message, sequence: (previous?.sequence ?? 0) + 1 }));
   }
 
   function create(input: CreateAuctionInput): string | null {
-    const result = createMockAuction(
-      input,
-      memberStore.getState(),
-      new Date(),
-      () => `auction-created-${nextAuctionId.current++}`,
-    );
+    const result = auctionStore.getState().createAuction(input, memberStore.getState(), new Date());
     if (!result.ok) return result.error;
-    setAuctions((previous) => [result.auction, ...previous]);
     setFilter('ALL');
     setPage(1);
     setCreateOpen(false);
@@ -53,8 +51,9 @@ export default function AuctionContainer() {
           setCreateOpen(true);
         }}
         onEnter={(id) => {
-          const auction = auctions.find((entry) => entry.id === id);
-          if (auction?.canEnter) announce(`${auction.itemName} 경매 상세방은 준비 중입니다.`);
+          const auction = auctionStore.getState().getAuction(id);
+          const path = auctionEntryPath(auction);
+          if (path) router.push(path);
         }}
       />
       {isCreateOpen && (
