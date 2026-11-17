@@ -28,7 +28,7 @@ export interface PlazaParticipant {
 export interface MovePayload {
   x: number;
   y: number;
-  seq: number; // 광장 구독이 하나도 없다가 새로 입장할 때 1부터 다시 시작 (구독 추가 시에는 이어서). 서버도 재입장 시 초기화
+  seq: number; // 광장 구독마다 1부터 시작. 같은 회원이 다른 탭에서 구독하면 서버가 세션을 교체하고 seq를 초기화
 }
 
 // /app/plaza/chat

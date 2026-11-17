@@ -149,6 +149,7 @@ function handleMove(client: Client, body: string) {
     return;
   }
 
+  if (plazaSessions.get(client.memberId) !== client) return;
   if (seq <= (moveSeqs.get(client.memberId) ?? 0)) return;
 
   const me = participants.get(client.memberId);
@@ -201,16 +202,17 @@ function handleChat(client: Client, body: string) {
   });
 }
 
-// memberId별 연결 수
-const plazaConnections = new Map<number, number>();
+// memberId별로 가장 나중에 광장을 구독한 연결만 유효
+const plazaSessions = new Map<number, Client>();
 
 // 구독 시작 시 광장 입장 처리
 function joinPlaza(client: Client) {
   if (client.inPlaza) return;
   client.inPlaza = true;
-  const count = plazaConnections.get(client.memberId) ?? 0;
-  plazaConnections.set(client.memberId, count + 1);
-  if (count > 0) return; // 이미 다른 탭으로 입장해 있으면 위치 유지, 입장 알림 생략
+  const replaced = plazaSessions.has(client.memberId);
+  plazaSessions.set(client.memberId, client);
+  moveSeqs.delete(client.memberId);
+  if (replaced) return; // 다른 탭에서 이미 입장해 있으면 세션만 교체하고 위치 유지, 입장 알림 생략
 
   const me: PlazaParticipant = {
     memberId: client.memberId,
@@ -226,13 +228,9 @@ function joinPlaza(client: Client) {
 function leavePlaza(client: Client) {
   if (!client.inPlaza) return;
   client.inPlaza = false;
-  const count = (plazaConnections.get(client.memberId) ?? 1) - 1;
-  if (count > 0) {
-    plazaConnections.set(client.memberId, count);
-    return; // 다른 탭이 남아 있으면 광장에 그대로 둠
-  }
+  if (plazaSessions.get(client.memberId) !== client) return;
 
-  plazaConnections.delete(client.memberId);
+  plazaSessions.delete(client.memberId);
   participants.delete(client.memberId);
   moveSeqs.delete(client.memberId);
   broadcastPlaza({ type: 'user_left', memberId: client.memberId, ts: Date.now() });
