@@ -1,3 +1,5 @@
+import PlazaView from '@/components/plaza/PlazaView';
+
 export default function PlazaPage() {
-  return <div>광장</div>;
+  return <PlazaView />;
 }
