@@ -217,13 +217,12 @@ export default function AuctionCreateModal({
                   {
                     value: 'PUBLIC',
                     label: 'Public',
-                    description:
-                      '입찰가가 모두에게 보이고, 10초 동안 더 높은 입찰이 없으면 낙찰돼요.',
+                    description: '입찰가 공개. 마감 10초 이내 입찰 시 남은 시간이 10초가 돼요.',
                   },
                   {
                     value: 'PRIVATE',
                     label: 'Private',
-                    description: '입찰가를 각자 한 번만 적고, 마감 후 가장 높은 사람이 낙찰돼요.',
+                    description: '여러 번 입찰할 수 있어요. 내 마지막 입찰가로 마감 후 경쟁해요.',
                   },
                 ] as const
               ).map((option) => (
